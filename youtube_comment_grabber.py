@@ -1,6 +1,8 @@
+import os
 from googleapiclient.discovery import build
 from datetime import datetime
 from pytz import timezone,utc
+from dotenv import load_dotenv
 
 from stuff import handle_video_ids
 
@@ -12,13 +14,27 @@ video_id_errors = []
 video_id_counter = 0
 
 # load from the module
-# sign-up on google api for the youtube api, only needs read-access
-# tutorial on that: https://blog.hubspot.com/website/how-to-get-youtube-api-key
-yt_api_key = sekrits.yt_api_key
+# sign-up on google api for the youtube data api v3
+# see readme.md for instructions
+#
+try:
+	load_dotenv('.env')
+except:
+	print("You need to create a .env file.")
+	exit()
 
+# YouTube Data API V3
+yt_api_key = os.getenv('YT_API_KEY')
+if (yt_api_key == None):
+	print("Set YT_API_KEY in the .env file")
+	exit()
 
 # Timey Whimey Stuff
-local_timezone = timezone("America/Chicago")
+try:
+	local_timezone = timezone(os.getenv('local_timezone'))
+except:
+	print("ptzy is not happy with timezone string")
+	exit()
 
 ## This is the compare time. 
 #last_date_check = datetime.now()
