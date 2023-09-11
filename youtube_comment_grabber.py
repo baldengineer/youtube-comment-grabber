@@ -12,7 +12,7 @@ print_help = False
 if ("-h" in sys.argv) or ("-H" in sys.argv):
 	print("This script supports these arguments:")
 	print("  -q    only print list of URLs (and status)")
-	print("  -noup does not update the last_check.txt file")
+	print("  -noup does not update the data\last_check.txt file")
 	print("  -h    this message")
 	exit()
 
@@ -56,11 +56,11 @@ except:
 #last_date_check = datetime.strptime("2023-08-01 12:23:34", "%Y-%m-%d %H:%M:%S") # in America/Chicago timezone
 #last_date_check_utc = local_timezone.localize(last_date_check).astimezone(utc)
 try:
-	with open("last_check.txt", 'r') as infile:
+	with open("data\last_check.txt", 'r') as infile:
 		file_string = infile.read().strip()
 
 except:
-	print("Did you create a last_check.txt file? It should contain")
+	print("Did you create a data\last_check.txt file? It should contain")
 	print("the earliest date to check against. For example:")
 	print("2023-09-10 19:31:58")
 	exit()
@@ -70,11 +70,11 @@ last_date_check_utc = local_timezone.localize(last_date_check).astimezone(utc)
 
 # this is gross, but I'll handle cmd line stuff later
 if ('-noup' in sys.argv) or ('-NOUP' in sys.argv):
-	print("Not updating last_check.txt")
+	print("Not updating data\last_check.txt")
 else:
-	print("Updating last_check.txt. Use -noup to skip this.")
+	print("Updating data\last_check.txt. Use -noup to skip this.")
 	# just in case we miss a comment by a second
-	with open("last_check.txt",'w') as outfile:
+	with open("data\last_check.txt",'w') as outfile:
 		outfile.write(datetime.strftime(datetime.now(),"%Y-%m-%d %H:%M:%S"))
 
 def video_comments(video_id, verbose=verbose):
