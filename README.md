@@ -53,10 +53,9 @@ Save that key in a file called `.env` as:
 I'm working on transitioning this project to a venv. Until then, you'll need to install a few packages manually. 
 
 Packages needed are:
-1. google-api-python-client
-2. pytz
+```pip install google-api-python-client pytz python-dotenv```
 
-Both are available with `pip`. 
+All are available with `pip`. 
 
 ## YouTube Video IDs
 The file `video_ids.txt` should contain a list of the IDs to check. One per line. You can use `#` as a comment. I'd suggest starting with 1 - 5
