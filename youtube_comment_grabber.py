@@ -11,18 +11,18 @@ from stuff import handle_video_ids
 print_help = False
 if ("-h" in sys.argv) or ("-H" in sys.argv):
 	print("This script supports these arguments:")
-	print("  -v    to print comments (and other stuff)")
+	print("  -q    only print list of URLs (and status)")
 	print("  -noup does not update the last_check.txt file")
 	print("  -h    this message")
 	exit()
 
-if ("-v" in sys.argv) or ("-V" in sys.argv):
-	verbose = True
-	print("Will show comments and other info")
-else:
-	print("Only showing updated URLs, use -v to show comments")
+if ("-q" in sys.argv) or ("-Q" in sys.argv):
 	verbose = False
-
+	print("Hidding comments (and other stuff)")
+else:
+	verbose = True
+	print("Showing comments (and other stuff) use -q to ignore")
+	
 # clear arrays for ids
 video_id_with_new = []
 video_id_errors = []
@@ -89,7 +89,7 @@ def video_comments(video_id, verbose=verbose):
 	else:
 		print(".", end='', flush=True)
 
-	if (verbose): print(f"Handling: https://www.youtube.com/watch?v={video_id}")
+	#if (verbose): print(f"Handling: https://www.youtube.com/watch?v={video_id}")
 
 	# creating youtube resource object
 	youtube = build('youtube', 'v3', developerKey=yt_api_key)
@@ -124,15 +124,16 @@ def video_comments(video_id, verbose=verbose):
 
 			# make nice clean string if it has been edited
 			comment_datetime_object = utc.localize(datetime.strptime(cs['updatedAt'], "%Y-%m-%dT%H:%M:%SZ"))
-			if (comment_datetime_object > last_date_check_utc): new_comment = True
+			if (comment_datetime_object > last_date_check_utc): 
+				new_comment = True
+				if (verbose): print(f"\n\nNew top comment on: https://www.youtube.com/watch?v={video_id}")
+				publish_string = f"Published: {cs['publishedAt']}"
+				if (cs['publishedAt'] != cs['updatedAt']):
+					# hey, they made an edit!
+					publish_string = f"{publish_string}, Edited: {cs['updatedAt']}"
 
-			publish_string = f"Published: {cs['publishedAt']}"
-			if (cs['publishedAt'] != cs['updatedAt']):
-				# hey, they made an edit!
-				publish_string = f"{publish_string}, Edited: {cs['updatedAt']}"
-
-			if (verbose): print(f"({comment_id}): {replycount} replies, Published: {cs['publishedAt']}") 
-			if (verbose): print(f"[{cs['authorDisplayName']}]: {cs['textDisplay']}") 
+				if (verbose): print(f"({comment_id}): {replycount} replies, Published: {cs['publishedAt']}") 
+				if (verbose): print(f"[{cs['authorDisplayName']}]: {cs['textDisplay']}") 
 			# if reply is there
 			
 			if (replycount > 0):
@@ -142,15 +143,16 @@ def video_comments(video_id, verbose=verbose):
 					rs = reply['snippet']
 
 					reply_datetime_object = utc.localize(datetime.strptime(cs['updatedAt'], "%Y-%m-%dT%H:%M:%SZ"))
-					if (reply_datetime_object > last_date_check_utc): new_reply = True
+					if (reply_datetime_object > last_date_check_utc): 
+						new_reply = True
+						if (verbose): print(f"\n\tNew replies")
+						if (verbose): print(f"	[{id}, {rs['authorDisplayName']}]: {rs['textDisplay']}")
+						reply_publish_string = f"[rs['idPublished: {rs['publishedAt']}"
+						if (rs['publishedAt'] != rs['updatedAt']):
+							reply_publish_string = f"{reply_publish_string}, Edited: {rs['updatedAt']}"
 
-					if (verbose): print(f"	[{id}, {rs['authorDisplayName']}]: {rs['textDisplay']}")
-					reply_publish_string = f"[rs['idPublished: {rs['publishedAt']}"
-					if (rs['publishedAt'] != rs['updatedAt']):
-						reply_publish_string = f"{reply_publish_string}, Edited: {rs['updatedAt']}"
-
-					if (verbose): print(f"	{reply_publish_string}")
-			if (verbose): print('\n')
+						if (verbose): print(f"	{reply_publish_string}\n")
+			#if (verbose): print('\n')
 
 		# Again repeat
 		if 'nextPageToken' in video_response:
@@ -181,7 +183,7 @@ def main():
 		for video_id in video_ids:
 			# reset the youtube object
 			youtube = ""
-			if (verbose): print(f'\n\n---------- Getting Comments for {video_id} ----------')
+			#if (verbose): print(f'\n\n---------- Getting Comments for {video_id} ----------')
 			try:
 				video_comments(video_id)
 			except Exception as e:
@@ -189,20 +191,16 @@ def main():
 				video_id_errors.append(video_id)
 
 	if (len(video_id_with_new) > 0):
+		print("\n------------------------------------")
 		print("Videos with new comments or replies:")
 		print_id_with_urL(video_id_with_new)
 		print("\n")
 
 	if (len(video_id_errors) > 0):
+		print("\n----------------")
 		print("ERROR WITH THESE:")
 		print_id_with_urL(video_id_errors)
 		print("\n")
-
-	#video_id = "bqdyve-hhZY"
-
-	# Call function
-	# print(f'\n\n---------- Getting Comments for {video_id} ----------')
-	# video_comments(video_id)
 
 if __name__ == '__main__':
 	main()

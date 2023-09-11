@@ -1,3 +1,4 @@
+![early screenshot](images/early_screenshot.png)
 # youtube-comment-grabber
 You probably don't want to use this tool yet. This code is pretty rough and not the direction I want to go anyway. But it might accidentally be helpful if you want to see examples of interacting with the YouTube API.
 
@@ -20,10 +21,19 @@ The script places the current date and time in a file called `last_check.txt`. E
 
 There isn't much in the way of error checking, so do not be surprised if the script just fails. 
 
+## Command Line Options
+Super basic commandline checks. Please use the same case for `noup`
+* `-q` is a quiet mode. You'll only get status updates and a list of URLs with new comments (or replies.)
+* `-noup` does not update the `last_check.txt`. (Good if you're testing video_ids or something)
+* `-h  lists these three amazing options`
+
+
 ## YouTube API Usage Note
 By default, you get 10,000 API requests per day quota. When this script runs, each video id it checks incurs a 1 quote cost. Google provides an [API quota dashboard](https://console.cloud.google.com/iam-admin/quotas), which you can access in the cloud console. More information is [available here](https://developers.google.com/youtube/v3/guides/quota_and_compliance_audits) as well.
 
-The next version of the script will cache comments and be smarter about which videos it checks. But even if you're tracking 100 videos, you can basically check them 3 times a day and still be under the limit.
+The next version of the script will cache comments and be smarter about which videos it checks. But even if you're tracking 100 videos, you can basically check them 3 times a day and still be under the limit. (It'll also track how many queries it is doing.)
+
+Currently, this script does not do any create actions. It is read-only.
 
 
 # Things you need
