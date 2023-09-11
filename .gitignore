@@ -1,6 +1,6 @@
 .env
 video_ids.txt
-#last_check.txt
+last_check.txt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
