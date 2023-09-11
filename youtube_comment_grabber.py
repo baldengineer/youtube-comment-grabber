@@ -1,4 +1,6 @@
 import os
+import sys
+
 from googleapiclient.discovery import build
 from datetime import datetime
 from pytz import timezone,utc
@@ -6,7 +8,20 @@ from dotenv import load_dotenv
 
 from stuff import handle_video_ids
 
-verbose = False
+print_help = False
+if ("-h" in sys.argv) or ("-H" in sys.argv):
+	print("This script supports these arguments:")
+	print("  -v    to print comments (and other stuff)")
+	print("  -noup does not update the last_check.txt file")
+	print("  -h    this message")
+	exit()
+
+if ("-v" in sys.argv) or ("-V" in sys.argv):
+	verbose = True
+	print("Will show comments and other info")
+else:
+	print("Only showing updated URLs, use -v to show comments")
+	verbose = False
 
 # clear arrays for ids
 video_id_with_new = []
@@ -40,14 +55,27 @@ except:
 #last_date_check = datetime.now()
 #last_date_check = datetime.strptime("2023-08-01 12:23:34", "%Y-%m-%d %H:%M:%S") # in America/Chicago timezone
 #last_date_check_utc = local_timezone.localize(last_date_check).astimezone(utc)
-with open("last_check.txt", 'r') as infile:
-	file_string = infile.read().strip()
+try:
+	with open("last_check.txt", 'r') as infile:
+		file_string = infile.read().strip()
+
+except:
+	print("Did you create a last_check.txt file? It should contain")
+	print("the earliest date to check against. For example:")
+	print("2023-09-10 19:31:58")
+	exit()
+
 last_date_check = datetime.strptime(file_string, "%Y-%m-%d %H:%M:%S") # in America/Chicago timezone
 last_date_check_utc = local_timezone.localize(last_date_check).astimezone(utc)
 
-# just in case we miss a comment by a second
-with open("last_check.txt",'w') as outfile:
-	outfile.write(datetime.strftime(datetime.now(),"%Y-%m-%d %H:%M:%S"))
+# this is gross, but I'll handle cmd line stuff later
+if ('-noup' in sys.argv) or ('-NOUP' in sys.argv):
+	print("Not updating last_check.txt")
+else:
+	print("Updating last_check.txt. Use -noup to skip this.")
+	# just in case we miss a comment by a second
+	with open("last_check.txt",'w') as outfile:
+		outfile.write(datetime.strftime(datetime.now(),"%Y-%m-%d %H:%M:%S"))
 
 def video_comments(video_id, verbose=verbose):
 	global video_id_with_new
