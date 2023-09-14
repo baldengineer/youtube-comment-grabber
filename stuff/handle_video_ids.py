@@ -1,14 +1,17 @@
 from googleapiclient.discovery import build
 import json
 
-text_file_with_ids = "data\video_ids.txt"
+text_file_with_ids = "data\\video_ids.txt"
 
-# youtube video id details:
+#! youtube video id details:
 # Exactly 11 characters
 # Allowed symbols: a-z, A-Z, 0-9, -, and _
+# Remember, it can start with a - or _, so test those
 
 
 ##########################################
+#? I don't know how to handle this from a module....yet :)
+
 def yt_api_query(video_id, yt_api_key):
 	global youtube
 	print("I decided not to do this...")
@@ -87,6 +90,8 @@ def load_video_ids(verbose=False):
 		exit()
 
 	print(f"Loaded {len(video_ids)} ids, first id is: {video_ids[0]}")
+	# TODO: Need to make this a command line option
+	video_ids.reverse()
 	return video_ids
 
 ##########################################
