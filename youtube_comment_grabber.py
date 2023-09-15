@@ -11,7 +11,9 @@ from stuff import handle_video_ids
 
 # TODO: Incorporate Rich (and maybe Textual) https://github.com/Textualize/rich
 
+print_help = True # just need a dummy line to try something in git
 print_help = False
+
 if ("-h" in sys.argv) or ("-H" in sys.argv):
 	print("This script supports these arguments:")
 	print("  -q    only print list of URLs (and status)")
