@@ -1,5 +1,6 @@
 import os
 import sys
+import traceback
 
 from googleapiclient.discovery import build
 from datetime import datetime
@@ -8,17 +9,20 @@ from dotenv import load_dotenv
 
 from stuff import handle_video_ids
 
+# TODO: Incorporate Rich (and maybe Textual) https://github.com/Textualize/rich
+
 print_help = False
+
 if ("-h" in sys.argv) or ("-H" in sys.argv):
 	print("This script supports these arguments:")
 	print("  -q    only print list of URLs (and status)")
-	print("  -noup does not update the last_check.txt file")
+	print("  -noup does not update the data\\last_check.txt file")
 	print("  -h    this message")
 	exit()
 
 if ("-q" in sys.argv) or ("-Q" in sys.argv):
 	verbose = False
-	print("Hidding comments (and other stuff)")
+	print("Hiding comments (and other stuff)")
 else:
 	verbose = True
 	print("Showing comments (and other stuff) use -q to ignore")
@@ -28,6 +32,7 @@ video_id_with_new = []
 video_id_errors = []
 video_id_counter = 0
 
+# TODO: Move these checks to a function
 # load from the module
 # sign-up on google api for the youtube data api v3
 # see readme.md for instructions
@@ -51,16 +56,13 @@ except:
 	print("ptzy is not happy with timezone string")
 	exit()
 
-## This is the compare time. 
-#last_date_check = datetime.now()
-#last_date_check = datetime.strptime("2023-08-01 12:23:34", "%Y-%m-%d %H:%M:%S") # in America/Chicago timezone
-#last_date_check_utc = local_timezone.localize(last_date_check).astimezone(utc)
+## ! This is the compare time. 
 try:
-	with open("last_check.txt", 'r') as infile:
+	with open("data\\last_check.txt", 'r') as infile:
 		file_string = infile.read().strip()
 
 except:
-	print("Did you create a last_check.txt file? It should contain")
+	print("Did you create a data\\last_check.txt file? It should contain")
 	print("the earliest date to check against. For example:")
 	print("2023-09-10 19:31:58")
 	exit()
@@ -68,13 +70,16 @@ except:
 last_date_check = datetime.strptime(file_string, "%Y-%m-%d %H:%M:%S") # in America/Chicago timezone
 last_date_check_utc = local_timezone.localize(last_date_check).astimezone(utc)
 
-# this is gross, but I'll handle cmd line stuff later
+# TODO: Handle cmd line arguments better and in a function
+# TODO: Add cmd line for reversing video ids
+# TODO: Check a single (or list?) of video ids from cmd line
+# TODO: Continious check?
 if ('-noup' in sys.argv) or ('-NOUP' in sys.argv):
-	print("Not updating last_check.txt")
+	print("Not updating data\\last_check.txt")
 else:
-	print("Updating last_check.txt. Use -noup to skip this.")
+	print("Updating data\\last_check.txt. Use -noup to skip this.")
 	# just in case we miss a comment by a second
-	with open("last_check.txt",'w') as outfile:
+	with open("data\\last_check.txt",'w') as outfile:
 		outfile.write(datetime.strftime(datetime.now(),"%Y-%m-%d %H:%M:%S"))
 
 def video_comments(video_id, verbose=verbose):
@@ -101,9 +106,7 @@ def video_comments(video_id, verbose=verbose):
 	).execute()
 	#video_response = handle_video_ids.yt_api_query(video_id, yt_api_key)
 
-#	print(type(video_response))
-
-	# iterate video response
+	# ! iterate video response
 	new_comment = False
 	new_reply = False
 	while video_response:
@@ -134,24 +137,24 @@ def video_comments(video_id, verbose=verbose):
 
 				if (verbose): print(f"({comment_id}): {replycount} replies, Published: {cs['publishedAt']}") 
 				if (verbose): print(f"[{cs['authorDisplayName']}]: {cs['textDisplay']}") 
+
 			# if reply is there
-			
 			if (replycount > 0):
 				# iterate through all reply
 				for reply in item['replies']['comments']:
 					id = item['id']
 					rs = reply['snippet']
 
-					reply_datetime_object = utc.localize(datetime.strptime(cs['updatedAt'], "%Y-%m-%dT%H:%M:%SZ"))
+					reply_datetime_object = utc.localize(datetime.strptime(rs['updatedAt'], "%Y-%m-%dT%H:%M:%SZ"))
 					if (reply_datetime_object > last_date_check_utc): 
 						new_reply = True
 						if (verbose): print(f"\n\tNew replies")
-						if (verbose): print(f"	[{id}, {rs['authorDisplayName']}]: {rs['textDisplay']}")
-						reply_publish_string = f"[rs['idPublished: {rs['publishedAt']}"
+						if (verbose): print(f"\t[{rs['authorDisplayName']}]: {rs['textDisplay']}")
+						reply_publish_string = f"[{id}] Published: {rs['publishedAt']}"
 						if (rs['publishedAt'] != rs['updatedAt']):
 							reply_publish_string = f"{reply_publish_string}, Edited: {rs['updatedAt']}"
 
-						if (verbose): print(f"	{reply_publish_string}\n")
+						if (verbose): print(f"\t{reply_publish_string}\n")
 			#if (verbose): print('\n')
 
 		# Again repeat
@@ -175,7 +178,6 @@ def main():
 	global youtube
 	global video_id_with_new
 	global video_id_errors
-	# Temporary single id
 
 	print(f"Checking for comments since {last_date_check.strftime('%Y-%m-%d %H:%M:%S')}")
 	video_ids = handle_video_ids.load_video_ids(verbose=True)
@@ -183,12 +185,14 @@ def main():
 		for video_id in video_ids:
 			# reset the youtube object
 			youtube = ""
-			#if (verbose): print(f'\n\n---------- Getting Comments for {video_id} ----------')
 			try:
 				video_comments(video_id)
-			except Exception as e:
-				print("Exception!")
+			except Exception:
+				traceback.print_exc()
 				video_id_errors.append(video_id)
+				if (len(video_id_errors) > 5):
+					print("5 failures occured, aborting")
+					exit()
 
 	if (len(video_id_with_new) > 0):
 		print("\n------------------------------------")
