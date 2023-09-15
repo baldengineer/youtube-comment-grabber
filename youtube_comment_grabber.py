@@ -21,7 +21,7 @@ if ("-h" in sys.argv) or ("-H" in sys.argv):
 
 if ("-q" in sys.argv) or ("-Q" in sys.argv):
 	verbose = False
-	print("Hidding comments (and other stuff)")
+	print("Hiding comments (and other stuff)")
 else:
 	verbose = True
 	print("Showing comments (and other stuff) use -q to ignore")
@@ -150,7 +150,7 @@ def video_comments(video_id, verbose=verbose):
 					id = item['id']
 					rs = reply['snippet']
 
-					reply_datetime_object = utc.localize(datetime.strptime(cs['updatedAt'], "%Y-%m-%dT%H:%M:%SZ"))
+					reply_datetime_object = utc.localize(datetime.strptime(rs['updatedAt'], "%Y-%m-%dT%H:%M:%SZ"))
 					if (reply_datetime_object > last_date_check_utc): 
 						new_reply = True
 						if (verbose): print(f"\n\tNew replies")
