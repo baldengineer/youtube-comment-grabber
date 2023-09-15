@@ -1,7 +1,7 @@
 from googleapiclient.discovery import build
 import json
 
-text_file_with_ids = "data\\video_ids.txt"
+text_file_with_ids = "data/video_ids.txt"
 
 #! youtube video id details:
 # Exactly 11 characters
