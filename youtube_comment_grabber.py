@@ -142,8 +142,8 @@ def video_comments(video_id, verbose=verbose):
 
 				if (verbose): print(f"({comment_id}): {replycount} replies, Published: {cs['publishedAt']}") 
 				if (verbose): print(f"[{cs['authorDisplayName']}]: {cs['textDisplay']}") 
+
 			# if reply is there
-			
 			if (replycount > 0):
 				# iterate through all reply
 				for reply in item['replies']['comments']:
