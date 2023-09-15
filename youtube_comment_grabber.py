@@ -1,6 +1,6 @@
 import os
 import sys
-import trackback
+import traceback
 
 from googleapiclient.discovery import build
 from datetime import datetime
@@ -31,7 +31,6 @@ video_id_with_new = []
 video_id_errors = []
 video_id_counter = 0
 
-
 # TODO: Move these checks to a function
 # load from the module
 # sign-up on google api for the youtube data api v3
@@ -57,9 +56,6 @@ except:
 	exit()
 
 ## ! This is the compare time. 
-#last_date_check = datetime.now()
-#last_date_check = datetime.strptime("2023-08-01 12:23:34", "%Y-%m-%d %H:%M:%S") # in America/Chicago timezone
-#last_date_check_utc = local_timezone.localize(last_date_check).astimezone(utc)
 try:
 	with open("data\\last_check.txt", 'r') as infile:
 		file_string = infile.read().strip()
@@ -108,8 +104,6 @@ def video_comments(video_id, verbose=verbose):
 	videoId=video_id
 	).execute()
 	#video_response = handle_video_ids.yt_api_query(video_id, yt_api_key)
-
-#	print(type(video_response))
 
 	# ! iterate video response
 	new_comment = False
@@ -190,7 +184,6 @@ def main():
 		for video_id in video_ids:
 			# reset the youtube object
 			youtube = ""
-			#if (verbose): print(f'\n\n---------- Getting Comments for {video_id} ----------')
 			try:
 				video_comments(video_id)
 			except Exception:
