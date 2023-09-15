@@ -18,11 +18,11 @@ This script uses a virtual environment. It will pull in several python modules (
 ## Setup Python Virtual Environment
 Here's the three steps that need to happen before the script runs. You only need to do #1 and #3 once.
 1. One time only, to create a python virtual environment (venv) with:
-```python3 -m venv env```
+```python3 -m venv venv```
 
 2. Activate the venv
-Unix: `source env/bin/activate`
-Windows: `.\env\Scripts\activate`
+Unix: `source venv/bin/activate`
+Windows: `.\venv\Scripts\activate`
 (Use `deactivate` to leave the venv.)
 
 3. Install Pip Packages
@@ -30,8 +30,8 @@ Windows: `.\env\Scripts\activate`
 
 # Usage
 1. Activate the venv
-Unix: `source env/bin/activate`
-Windows: `.\env\Scripts\activate`
+Unix: `source venv/bin/activate`
+Windows: `.\venv\Scripts\activate`
 
 2. To check for new comments, run `python youtube_comment_grabber.py`.
 
