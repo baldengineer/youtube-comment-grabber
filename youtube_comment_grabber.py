@@ -16,7 +16,7 @@ print_help = False
 if ("-h" in sys.argv) or ("-H" in sys.argv):
 	print("This script supports these arguments:")
 	print("  -q    only print list of URLs (and status)")
-	print("  -noup does not update the data\\last_check.txt file")
+	print("  -noup does not update the data/last_check.txt file")
 	print("  -h    this message")
 	exit()
 
@@ -58,11 +58,11 @@ except:
 
 ## ! This is the compare time. 
 try:
-	with open("data\\last_check.txt", 'r') as infile:
+	with open("data/last_check.txt", 'r') as infile:
 		file_string = infile.read().strip()
 
 except:
-	print("Did you create a data\\last_check.txt file? It should contain")
+	print("Did you create a data/last_check.txt file? It should contain")
 	print("the earliest date to check against. For example:")
 	print("2023-09-10 19:31:58")
 	exit()
