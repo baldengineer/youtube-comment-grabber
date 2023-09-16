@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 import os
 import sys
 import traceback
@@ -75,11 +77,11 @@ last_date_check_utc = local_timezone.localize(last_date_check).astimezone(utc)
 # TODO: Check a single (or list?) of video ids from cmd line
 # TODO: Continious check?
 if ('-noup' in sys.argv) or ('-NOUP' in sys.argv):
-	print("Not updating data\\last_check.txt")
+	print("Not updating data/last_check.txt")
 else:
-	print("Updating data\\last_check.txt. Use -noup to skip this.")
+	print("Updating data/last_check.txt. Use -noup to skip this.")
 	# just in case we miss a comment by a second
-	with open("data\\last_check.txt",'w') as outfile:
+	with open("data/last_check.txt",'w') as outfile:
 		outfile.write(datetime.strftime(datetime.now(),"%Y-%m-%d %H:%M:%S"))
 
 def video_comments(video_id, verbose=verbose):
