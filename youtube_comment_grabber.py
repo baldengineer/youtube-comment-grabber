@@ -2,6 +2,7 @@
 
 import os
 import sys
+import sqlite3
 import traceback
 
 from googleapiclient.discovery import build
@@ -18,7 +19,7 @@ print_help = False
 if ("-h" in sys.argv) or ("-H" in sys.argv):
 	print("This script supports these arguments:")
 	print("  -q    only print list of URLs (and status)")
-	print("  -noup does not update the data/last_check.txt file")
+	print("  -noup does not update the last_check.txt file")
 	print("  -h    this message")
 	exit()
 
@@ -59,12 +60,13 @@ except:
 	exit()
 
 ## ! This is the compare time. 
+last_check_file = os.path.join('data','last_check.txt')
 try:
-	with open("data/last_check.txt", 'r') as infile:
+	with open(last_check_file, 'r') as infile:
 		file_string = infile.read().strip()
 
 except:
-	print("Did you create a data/last_check.txt file? It should contain")
+	print(f"Did you create a {last_check_file} file? It should contain")
 	print("the earliest date to check against. For example:")
 	print("2023-09-10 19:31:58")
 	exit()
@@ -77,11 +79,11 @@ last_date_check_utc = local_timezone.localize(last_date_check).astimezone(utc)
 # TODO: Check a single (or list?) of video ids from cmd line
 # TODO: Continious check?
 if ('-noup' in sys.argv) or ('-NOUP' in sys.argv):
-	print("Not updating data/last_check.txt")
+	print(f"Not updating {last_check_file}")
 else:
-	print("Updating data/last_check.txt. Use -noup to skip this.")
+	print(f"Updating {last_check_file}. Use -noup to skip this.")
 	# just in case we miss a comment by a second
-	with open("data/last_check.txt",'w') as outfile:
+	with open(last_check_file,'w') as outfile:
 		outfile.write(datetime.strftime(datetime.now(),"%Y-%m-%d %H:%M:%S"))
 
 def video_comments(video_id, verbose=verbose):
