@@ -14,26 +14,44 @@ from stuff import handle_video_ids
 
 # TODO: Incorporate Rich (and maybe Textual) https://github.com/Textualize/rich
 
-print_help = False
+##### Globals
+# clear arrays for ids
+video_id_with_new = []
+video_id_errors = []
+video_id_counter = 0
 
-if ("-h" in sys.argv) or ("-H" in sys.argv):
+verbose = False
+no_last_update = False
+
+def print_cmdline_help():
 	print("This script supports these arguments:")
 	print("  -q    only print list of URLs (and status)")
 	print("  -noup does not update the last_check.txt file")
 	print("  -h    this message")
 	exit()
 
-if ("-q" in sys.argv) or ("-Q" in sys.argv):
-	verbose = False
-	print("Hiding comments (and other stuff)")
-else:
-	verbose = True
-	print("Showing comments (and other stuff) use -q to ignore")
+def check_cmdline_args():
+	global verbose
+	global no_last_update
+
+	if ("-h" in sys.argv) or ("-H" in sys.argv): 
+		print_cmdline_help()
 	
-# clear arrays for ids
-video_id_with_new = []
-video_id_errors = []
-video_id_counter = 0
+	if ("-q" in sys.argv) or ("-Q" in sys.argv):
+		verbose = False
+		print("Hiding comments (and other stuff)")
+	else:
+		verbose = True
+		print("Showing comments (and other stuff) use -q to ignore")
+		
+	if ('-noup' in sys.argv) or ('-NOUP' in sys.argv):
+		no_last_update = True
+
+	# -noup isn't here but it's going to change to a flag
+	# anyway
+
+# TODO move this to main() after the checks
+check_cmdline_args()
 
 # TODO: Move these checks to a function
 # load from the module
@@ -74,11 +92,10 @@ except:
 last_date_check = datetime.strptime(file_string, "%Y-%m-%d %H:%M:%S") # in America/Chicago timezone
 last_date_check_utc = local_timezone.localize(last_date_check).astimezone(utc)
 
-# TODO: Handle cmd line arguments better and in a function
 # TODO: Add cmd line for reversing video ids
 # TODO: Check a single (or list?) of video ids from cmd line
 # TODO: Continious check?
-if ('-noup' in sys.argv) or ('-NOUP' in sys.argv):
+if (no_last_update):
 	print(f"Not updating {last_check_file}")
 else:
 	print(f"Updating {last_check_file}. Use -noup to skip this.")
