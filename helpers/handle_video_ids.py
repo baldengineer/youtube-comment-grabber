@@ -113,7 +113,7 @@ def test_all_threads(yt_api_key):
 def main():
 	# import sekrits
 	# yt_api_key = sekrits.yt_api_key
-	print("Did you mean to run this module standalone?")
+	print(f"Did you mean to run {path.basename(__file__)} standalone?")
 	exit()
 	global text_file_with_ids
 	# so the code works if testing this module standalone

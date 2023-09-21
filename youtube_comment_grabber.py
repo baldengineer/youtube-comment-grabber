@@ -2,7 +2,6 @@
 
 import os
 import sys
-import sqlite3
 import traceback
 
 from googleapiclient.discovery import build
@@ -10,7 +9,7 @@ from datetime import datetime
 from pytz import timezone,utc
 from dotenv import load_dotenv
 
-from stuff import handle_video_ids
+from helpers import handle_video_ids
 
 # TODO: Incorporate Rich (and maybe Textual) https://github.com/Textualize/rich
 
