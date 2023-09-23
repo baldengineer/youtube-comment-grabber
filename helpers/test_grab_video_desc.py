@@ -1,11 +1,35 @@
 from googleapiclient.discovery import build
-
 from os import path, getenv
 
 yt_api_key = getenv('YT_API_KEY')
 
-# temp video id
+# temp video id(s)
+#video_id = 'UHwyHcvvem0'
 video_id = 'UHwyHcvvem0,WQi8g1EBGIw'
+
+video_desc_mapping = {
+	"id" : "yt_id",
+	"title" : "title",
+	"snippet" : {
+		"publishedAt" : "yt_snippet.publishedAt",
+		"title" : "yt_snippet.title",
+		"channelId" : "yt_snippet.channelId",
+		"description" : "yt_snippet.description",
+		"channelTitle" : "yt_snippet.channelTitle",
+		"tags" : "yt_snippet.tags",
+		"categoryId" : "yt_snippet.categoryId",
+		"liveBroadcastContent" : "yt_snippet.liveBroadcastContent",
+	},
+	"contentDetails" : {
+		"duration" : "yt_details.duration",
+	},
+	"statistics" : {
+		"viewCount" : "yt_statistics.viewCount",
+		"likeCount" : "yt_statistics.likeCount",
+		"dislikeCount" : "yt_statistics.dislikeCount",
+		"commentCount" : "yt_statistics.commentCount",
+	}
+}
 
 # creating youtube resource object
 youtube = build('youtube', 'v3', developerKey=yt_api_key)
@@ -17,6 +41,7 @@ id=video_id
 ).execute()
 
 #print(video_response)
+
 
 #exit()
 while video_response:
