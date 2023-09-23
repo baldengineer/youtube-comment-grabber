@@ -1,5 +1,7 @@
 import sqlite3
+import datetime
 from os import path, getenv
+
 
 # Global for the database
 db_conn = None
@@ -24,6 +26,20 @@ def create_connection(db_file=db_file):
 		print(f"DB connection failed:\n{e}")
 		return False
 	
+def db_get_video_ids(acitve_only=True):
+	if (acitve_only):
+		sql = "SELECT yt_id FROM yt_videos WHERE active_update='True'"
+	else:
+		sql = "SELECT yt_id FROM yt_videos"
+	curr = db_conn.cursor()
+	curr.execute(sql)
+	rows = curr.fetchall()
+	video_ids = []
+	for row in rows:
+		video_ids.append(row[0].strip())
+	print(f"db has {len(video_ids)} video ids")
+	return video_ids
+
 def db_get_single_element(sql): 
 	curr = db_conn.cursor()
 	curr.execute(sql)
@@ -47,7 +63,9 @@ def get_last_db_update():
 	print(f"Last data dump: {last_db_update}")
 	return last_db_update
 
-def build_col_list(cols):
+
+
+def build_insert_list(cols):
 	col_list = ""
 	parameter_list = ""
 	for col in cols:
@@ -57,6 +75,10 @@ def build_col_list(cols):
 	parameter_list = parameter_list[1:]
 	#print(f"columns: {col_list}")
 	return (col_list, parameter_list)
+
+def build_update_list(cols):
+	col_list = "=?,".join(cols) +"=?"
+	return (col_list)
 
 # insert is failing because tags are an array! 
 # gah
@@ -73,8 +95,20 @@ def does_videoid_exist(video_id_raw):
 	else:
 		print(f"{video_id} return type None")
 
+def db_update_row(table, id_col, id_val, cols, vals):
+	cols.append('last_update')
+	vals.append(datetime.datetime.now())
+	col_list = build_update_list(cols)
+	
+	sql = f"UPDATE {table} SET {col_list} WHERE {id_col}='{id_val}'"
+	print(f"update sql: {sql}")
+
+	curr = db_conn.cursor()
+	curr.execute(sql, vals)
+	db_conn.commit()
+
 def db_insert_row(table, cols, vals):
-	(col_list,parameter_list) = build_col_list(cols)
+	(col_list,parameter_list) = build_insert_list(cols)
 	#print(f"col_list: {col_list}")
 	#print(f"parameter_list: {parameter_list}")
 	curr = db_conn.cursor()
