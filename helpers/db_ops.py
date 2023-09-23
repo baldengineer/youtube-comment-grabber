@@ -5,7 +5,6 @@ from os import path, getenv
 db_conn = None
 db_file = None
 
-
 # Get the database file
 try:
 	db_file = path.join("data",getenv('db_file').strip())
@@ -31,7 +30,10 @@ def db_get_single_element(sql):
 
 	rows = curr.fetchall()
 	if (len(rows) > 0): 
-		return rows[0][0].strip()
+		if (isinstance(rows[0][0],int)):
+			return f"{rows[0][0]}"
+		else:
+			return rows[0][0].strip()
 	else:
 		return None
 
@@ -45,6 +47,40 @@ def get_last_db_update():
 	print(f"Last data dump: {last_db_update}")
 	return last_db_update
 
+def build_col_list(cols):
+	col_list = ""
+	parameter_list = ""
+	for col in cols:
+		col_list = col_list + "," + col
+		parameter_list = parameter_list + ",?"
+	col_list = col_list[1:]
+	parameter_list = parameter_list[1:]
+	#print(f"columns: {col_list}")
+	return (col_list, parameter_list)
+
+# insert is failing because tags are an array! 
+# gah
+
+def does_videoid_exist(video_id_raw):
+	video_id = video_id_raw.strip()
+	sql = f"SELECT count(yt_id) from yt_videos WHERE yt_id='{video_id}'"
+	match_count = db_get_single_element(sql)
+	if (match_count.isnumeric()):
+		if (int(match_count) > 0):
+			print(f"{video_id} matched {match_count} rows")
+		else:
+			print(f"{video_id} matched 0 rows, but you shouldn't see this...")
+	else:
+		print(f"{video_id} return type None")
+
+def db_insert_row(table, cols, vals):
+	(col_list,parameter_list) = build_col_list(cols)
+	#print(f"col_list: {col_list}")
+	#print(f"parameter_list: {parameter_list}")
+	curr = db_conn.cursor()
+	curr.execute(f"INSERT INTO {table}({col_list}) VALUES ({parameter_list})", vals)
+	db_conn.commit()
+
 def set_last_db_update(date):
 	curr = db_conn.cursor()
 	sql = f"UPDATE meta SET last_db_update='{date}'"
@@ -54,9 +90,6 @@ def set_last_db_update(date):
 		print("last_db_date upated")
 	except Exception as e:
 		print(f"Update last_db_date failed\n {e}")
-
-	
-
 
 ##########################################
 def main():
