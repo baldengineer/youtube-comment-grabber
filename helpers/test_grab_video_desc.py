@@ -48,10 +48,13 @@ def handle_mixed_vals(val):
 	return new_value
 
 if (db_ops.create_connection("data\yt_data.db")):
-	print("Fetching video ids")
+	print("Fetching video ids from db...")
 	video_id_list = db_ops.db_get_video_ids()
 	video_id = ",".join(video_id_list)
 
+	
+
+	exit()
 	print("Starting YT stuff...")
 	# creating youtube resource object
 	print("youtube build")
@@ -113,7 +116,7 @@ if (db_ops.create_connection("data\yt_data.db")):
 			#print(f"\n\n\ncols:{sql_columns}")
 			#print(f"\nvals:{sql_values}")
 			#db_ops.db_insert_row("yt_videos",sql_columns,sql_values)
-			db_ops.db_update_row("yt_videos","yt_id",yt_id,sql_columns,sql_values)
+			db_ops.db_update_row("yt_videos","yt_id",yt_id,sql_columns,sql_values,timestamp=True)
 
 
 		# keep refreshing video_response object if there are more pages to grab 
