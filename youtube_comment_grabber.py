@@ -10,6 +10,8 @@ from pytz import timezone,utc
 from dotenv import load_dotenv
 
 from helpers import handle_video_ids
+from helpers import handle_video_descriptions
+from helpers import db_ops
 
 # TODO: Incorporate Rich (and maybe Textual) https://github.com/Textualize/rich
 
@@ -200,7 +202,10 @@ def main():
 	global video_id_errors
 
 	print(f"Checking for comments since {last_date_check.strftime('%Y-%m-%d %H:%M:%S')}")
-	video_ids = handle_video_ids.load_video_ids(verbose=True)
+	
+#	video_ids = handle_video_ids.load_video_ids(verbose=True)
+	if (db_ops.create_connection() == False): exit()
+	video_ids = db_ops.db_get_video_ids(True)
 	if (len(video_ids) > 0):
 		for video_id in video_ids:
 			# reset the youtube object
