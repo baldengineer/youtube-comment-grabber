@@ -95,19 +95,24 @@ def does_videoid_exist(video_id_raw):
 	else:
 		print(f"{video_id} return type None")
 
-def db_update_row(table, id_col, id_val, cols, vals):
-	cols.append('last_update')
-	vals.append(datetime.datetime.now())
+# TODO: Handle timestamps better
+def db_update_row(table, id_col, id_val, cols, vals, timestamp=True):
+	if (timestamp):
+		cols.append('last_update')
+		vals.append(datetime.datetime.now())
 	col_list = build_update_list(cols)
 	
 	sql = f"UPDATE {table} SET {col_list} WHERE {id_col}='{id_val}'"
-	print(f"update sql: {sql}")
+	#print(f"update sql: {sql}")
 
 	curr = db_conn.cursor()
 	curr.execute(sql, vals)
 	db_conn.commit()
 
-def db_insert_row(table, cols, vals):
+def db_insert_row(table, cols, vals, timestamp=True):
+	if (timestamp):
+		cols.append('last_update')
+		vals.append(datetime.datetime.now())
 	(col_list,parameter_list) = build_insert_list(cols)
 	#print(f"col_list: {col_list}")
 	#print(f"parameter_list: {parameter_list}")

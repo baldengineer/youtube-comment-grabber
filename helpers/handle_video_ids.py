@@ -9,60 +9,6 @@ text_file_with_ids = path.join("data","video_ids.txt")
 # Allowed symbols: a-z, A-Z, 0-9, -, and _
 # Remember, it can start with a - or _, so test those
 
-
-##########################################
-#? I don't know how to handle this from a module....yet :)
-
-def yt_api_query(video_id, yt_api_key):
-	global youtube
-	print("I decided not to do this...")
-	exit()
-	# empty list for storing reply
-	#print(f"Handling: https://www.youtube.com/watch?v={video_id}")
-
-	# creating youtube resource object
-	youtube = build('youtube', 'v3', developerKey=yt_api_key)
-
-	# retrieve youtube video results
-	video_response=youtube.commentThreads().list(
-		part='snippet,replies',
-		videoId=video_id
-		).execute()
-
-	return video_response
-
-
-##########################################
-def open_json_string(file='sample.json'):
-	print("------ RUNNING OFFLINE ------")
-	print(f"Loading results from {file}...", end='')
-	with open(file, 'r') as infile:
-		results = json.load(infile)
-	print("done!")
-	return results
-
-
-##########################################
-def save_json_string(yt_api_key, printing=False, file='sample.json'):
-	video_ids = load_video_ids()
-
-	if (len(video_ids) > 0):
-		video_ids_json = json.dumps(video_ids[0])
-	else:
-		print("Did not load any ids?")
-		exit()
-
-#	exit()
-	results = yt_api_query(video_ids, yt_api_key)
-
-	print(f"Saving results to {file}...", end='')
-	with open(file,"w") as outfile:
-		json.dump(results,outfile)
-	print("done!")
-	if (printing):
-		print(json.dumps(results, indent=2))
-
-
 ##########################################
 def load_video_ids(verbose=False):
 	video_ids = []
@@ -94,20 +40,6 @@ def load_video_ids(verbose=False):
 	# TODO: Need to make this a command line option
 	video_ids.reverse()
 	return video_ids
-
-##########################################
-def test_all_threads(yt_api_key):
-	print("Nope. Not doing it")
-	return
-
-	youtube = build('youtube', 'v3', developerKey=yt_api_key)
-
-	response = youtube.commentThreads().list(
-		part='snippet,replies',
-		allThreadsRelatedToChannelId=''
-		).execute()
-	print(response)
-	json.dumps(response)
 
 ##########################################
 def main():
