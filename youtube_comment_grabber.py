@@ -20,6 +20,7 @@ from helpers import db_ops
 video_id_with_new = []
 video_id_errors = []
 video_id_counter = 0
+time_at_launch = datetime.strftime(datetime.now(),"%Y-%m-%d %H:%M:%S") # used later, get the time asap
 
 verbose = False
 no_last_update = False
@@ -78,33 +79,7 @@ except:
 	print("ptzy is not happy with timezone string")
 	exit()
 
-## ! This is the compare time. 
-last_check_file = os.path.join('data','last_check.txt')
-try:
-	with open(last_check_file, 'r') as infile:
-		file_string = infile.read().strip()
-
-except:
-	print(f"Did you create a {last_check_file} file? It should contain")
-	print("the earliest date to check against. For example:")
-	print("2023-09-10 19:31:58")
-	exit()
-
-last_date_check = datetime.strptime(file_string, "%Y-%m-%d %H:%M:%S") # in America/Chicago timezone
-last_date_check_utc = local_timezone.localize(last_date_check).astimezone(utc)
-
-# TODO: Add cmd line for reversing video ids
-# TODO: Check a single (or list?) of video ids from cmd line
-# TODO: Continious check?
-if (no_last_update):
-	print(f"Not updating {last_check_file}")
-else:
-	print(f"Updating {last_check_file}. Use -noup to skip this.")
-	# just in case we miss a comment by a second
-	with open(last_check_file,'w') as outfile:
-		outfile.write(datetime.strftime(datetime.now(),"%Y-%m-%d %H:%M:%S"))
-
-def video_comments(video_id, verbose=verbose):
+def video_comments(video_id, last_date_check_utc, verbose=verbose):
 	global video_id_with_new
 	global video_id_counter
 
@@ -132,9 +107,9 @@ def video_comments(video_id, verbose=verbose):
 	new_comment = False
 	new_reply = False
 	while video_response:
-	
 		# extracting required info
 		# from each result object
+		#  Ref dec: https://developers.google.com/youtube/v3/docs/?apix=true
 		for item in video_response['items']:
 			# moderationStatus requires authorization (e.g. channel owner)
 			# Extacting comments
@@ -200,18 +175,31 @@ def main():
 	global youtube
 	global video_id_with_new
 	global video_id_errors
-
-	print(f"Checking for comments since {last_date_check.strftime('%Y-%m-%d %H:%M:%S')}")
+	last_date_check_utc = None
 	
-#	video_ids = handle_video_ids.load_video_ids(verbose=True)
 	if (db_ops.create_connection() == False): exit()
+
+	#! Date Check
+	last_date_check = datetime.strptime(db_ops.get_last_db_update(), "%Y-%m-%d %H:%M:%S") # in America/Chicago timezone
+	last_date_check_utc = local_timezone.localize(last_date_check).astimezone(utc)
+	print(f"Checking for comments since {last_date_check.strftime('%Y-%m-%d %H:%M:%S')}")
+	if (no_last_update):
+		print(f"Not updating last check date")
+	else:
+		print(f"Updating last check date to {time_at_launch}. Use -noup to skip this.")
+		# just in case we miss a comment by a second
+		db_ops.set_last_db_update(time_at_launch)
+
+	# TODO: Add cmd line for reversing video ids
+	# TODO: Check a single (or list?) of video ids from cmd line
+	# TODO: Continious check?
 	video_ids = db_ops.db_get_video_ids(True)
 	if (len(video_ids) > 0):
 		for video_id in video_ids:
 			# reset the youtube object
 			youtube = ""
 			try:
-				video_comments(video_id)
+				video_comments(video_id,last_date_check_utc)
 			except Exception:
 				traceback.print_exc()
 				video_id_errors.append(video_id)

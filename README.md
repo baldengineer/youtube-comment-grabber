@@ -12,8 +12,7 @@ This script uses a virtual environment. It will pull in several python modules (
 5. Copy `.env_sample` to `.env`
 6. Edit `.env` to include your Youtube Data API v3 API Key.
 7. Edit `.env` to include your local timezone (([Here is a list of supported pytz timezones](https://gist.github.com/heyalexej/8bf688fd67d7199be4a1682b3eec7568)))
-8. Create (or edit) `last_check.txt` with date format `YYYY-MM-DD HH:MM:SS` (in your timezone). Good starting point is 24 hours ago.
-9. Edit `video_ids.txt` to contain at least 1 video id you want to check.
+8. Edit `video_ids.txt` to contain at least 1 video id you want to check.
 
 ## Setup Python Virtual Environment
 Here's the three steps that need to happen before the script runs. You only need to do #1 and #3 once.
@@ -39,16 +38,14 @@ Windows: `.\venv\Scripts\activate`
 
 It will check each video id and its comments for anything posted since the last time the script ran. 
 
-The script places the current date and time in a file called `last_check.txt`. Edit that date if you want to change the compare. 
-
-(Yeah, I know, this is messy. I have something better coming.)
+(Currently) The script uses the date in the meta table of the database to compare against. It stores the date in the time zone defined in `.env`. (That way it is easier to edit.)
 
 There isn't much in the way of error checking, so do not be surprised if the script just fails. 
 
 ## Command Line Options
 Super basic commandline checks. Please use the same case for `noup`
 * `-q` is a quiet mode. You'll only get status updates and a list of URLs with new comments (or replies.)
-* `-noup` does not update the `last_check.txt`. (Good if you're testing video_ids or something)
+* `-noup` does not update last-check in the db`. (Good if you're testing video_ids or something)
 * `-h  lists these three amazing options`
 
 # Get YouTube Data API v3
