@@ -106,6 +106,7 @@ def video_comments(video_id, last_date_check_utc, verbose=verbose):
 	# ! iterate video response
 	new_comment = False
 	new_reply = False
+	print(f"video_reponse is {sys.getsizeof(video_response)} bytes")
 	while video_response:
 		# extracting required info
 		# from each result object
@@ -180,7 +181,7 @@ def main():
 	if (db_ops.create_connection() == False): exit()
 
 	#! Date Check
-	last_date_check = datetime.strptime(db_ops.get_last_db_update(), "%Y-%m-%d %H:%M:%S") # in America/Chicago timezone
+	last_date_check = datetime.strptime(db_ops.get_last_comment_check(), "%Y-%m-%d %H:%M:%S") # in America/Chicago timezone
 	last_date_check_utc = local_timezone.localize(last_date_check).astimezone(utc)
 	print(f"Checking for comments since {last_date_check.strftime('%Y-%m-%d %H:%M:%S')}")
 	if (no_last_update):
@@ -188,7 +189,7 @@ def main():
 	else:
 		print(f"Updating last check date to {time_at_launch}. Use -noup to skip this.")
 		# just in case we miss a comment by a second
-		db_ops.set_last_db_update(time_at_launch)
+		db_ops.set_last_comment_check(time_at_launch)
 
 	# TODO: Add cmd line for reversing video ids
 	# TODO: Check a single (or list?) of video ids from cmd line

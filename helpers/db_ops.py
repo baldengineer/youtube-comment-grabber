@@ -49,6 +49,7 @@ def db_get_single_element(sql):
 		if (isinstance(rows[0][0],int)):
 			return f"{rows[0][0]}"
 		else:
+			if (rows[0][0] is None): return ""
 			return rows[0][0].strip()
 	else:
 		return None
@@ -63,7 +64,13 @@ def get_last_db_update():
 	print(f"Last data dump: {last_db_update}")
 	return last_db_update
 
-
+def get_last_comment_check():
+	last_comment_check = db_get_single_element("SELECT last_comment_check FROM meta")
+	#print(f"Last data dump: {last_db_update}")
+	if (last_comment_check is None) or (last_comment_check is ""):
+		print("Need to set last_comment_check date in meta table")
+		exit()
+	return last_comment_check
 
 def build_insert_list(cols):
 	col_list = ""
@@ -120,13 +127,24 @@ def db_insert_row(table, cols, vals, timestamp=True):
 	curr.execute(f"INSERT INTO {table}({col_list}) VALUES ({parameter_list})", vals)
 	db_conn.commit()
 
+def set_last_comment_check(date):
+	curr = db_conn.cursor()
+	sql = f"UPDATE meta SET last_comment_check='{date}'"
+	try:
+		curr.execute(sql)
+		db_conn.commit()
+		print("last_comment_check updated")
+	except Exception as e:
+		print(f"Update last_comment_check failed\n {e}")
+
+
 def set_last_db_update(date):
 	curr = db_conn.cursor()
 	sql = f"UPDATE meta SET last_db_update='{date}'"
 	try:
 		curr.execute(sql)
 		db_conn.commit()
-		print("last_db_date upated")
+		print("last_db_date updated")
 	except Exception as e:
 		print(f"Update last_db_date failed\n {e}")
 
