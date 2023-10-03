@@ -40,9 +40,14 @@ def db_get_video_ids(acitve_only=True):
 	print(f"db has {len(video_ids)} video ids")
 	return video_ids
 
-def db_get_single_element(sql): 
+def db_get_single_element(sql, vals=None): 
 	curr = db_conn.cursor()
-	curr.execute(sql)
+	if (vals == None):
+		curr.execute(sql)
+	if (isinstance(vals,str)):
+		curr.execute(sql,[vals]) # need a list for vals
+	if (isinstance(vals,tuple)):
+		curr.execute(sql,vals)
 
 	rows = curr.fetchall()
 	if (len(rows) > 0): 
@@ -103,10 +108,10 @@ def does_videoid_exist(video_id_raw):
 		print(f"{video_id} return type None")
 
 # TODO: Handle timestamps better
-def db_update_row(table, id_col, id_val, cols, vals, timestamp=True):
-	if (timestamp):
+def db_update_row(table, id_col, id_val, cols, vals, timestamp="True"):
+	if (timestamp != ""):
 		cols.append('last_update')
-		vals.append(datetime.datetime.now())
+		vals.append(timestamp)
 	col_list = build_update_list(cols)
 	
 	sql = f"UPDATE {table} SET {col_list} WHERE {id_col}='{id_val}'"

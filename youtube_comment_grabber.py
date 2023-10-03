@@ -21,6 +21,7 @@ video_id_with_new = []
 video_id_errors = []
 video_id_counter = 0
 time_at_launch = datetime.strftime(datetime.now(),"%Y-%m-%d %H:%M:%S") # used later, get the time asap
+time_at_launch_gmt = utc.localize(datetime.strptime(time_at_launch, "%Y-%m-%d %H:%M:%S")) # adds +00:00
 
 verbose = False
 no_last_update = False
@@ -75,6 +76,7 @@ if (yt_api_key == None):
 # Timey Whimey Stuff
 try:
 	local_timezone = timezone(os.getenv('local_timezone'))
+	time_at_launch_gmt
 except:
 	print("ptzy is not happy with timezone string")
 	exit()
@@ -83,13 +85,15 @@ def video_comments(video_id, last_date_check_utc, verbose=verbose):
 	global video_id_with_new
 	global video_id_counter
 
+	db_video_title = handle_video_descriptions.get_video_title_db(video_id)
+	print(f"Checking: [{db_video_title}]")
 	# give update something is happening
-	video_id_counter = video_id_counter + 1
-	if (video_id_counter >= 10):
-		print(".")
-		video_id_counter = 0
-	else:
-		print(".", end='', flush=True)
+	# video_id_counter = video_id_counter + 1
+	# if (video_id_counter >= 10):
+	# 	video_id_counter = 0
+	#	print(".")
+	# else:
+	# 	print(".", end='', flush=True)
 
 	#if (verbose): print(f"Handling: https://www.youtube.com/watch?v={video_id}")
 
@@ -106,7 +110,7 @@ def video_comments(video_id, last_date_check_utc, verbose=verbose):
 	# ! iterate video response
 	new_comment = False
 	new_reply = False
-	print(f"video_reponse is {sys.getsizeof(video_response)} bytes")
+	#print(f"video_reponse is {sys.getsizeof(video_response)} bytes")
 	while video_response:
 		# extracting required info
 		# from each result object
@@ -178,7 +182,12 @@ def main():
 	global video_id_errors
 	last_date_check_utc = None
 	
+	# bail if we can't open the db
 	if (db_ops.create_connection() == False): exit()
+
+	# update video descriptions. 
+	# TODO: Need to check if comments changed!
+	handle_video_descriptions.update_video_descriptions(time_at_launch_gmt)
 
 	#! Date Check
 	last_date_check = datetime.strptime(db_ops.get_last_comment_check(), "%Y-%m-%d %H:%M:%S") # in America/Chicago timezone
