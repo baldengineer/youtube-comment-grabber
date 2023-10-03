@@ -8,6 +8,7 @@ from googleapiclient.discovery import build
 from datetime import datetime
 from pytz import timezone,utc
 from dotenv import load_dotenv
+from rich.progress import Progress
 
 from helpers import handle_video_ids
 from helpers import handle_video_descriptions
@@ -85,8 +86,8 @@ def video_comments(video_id, last_date_check_utc, verbose=verbose):
 	global video_id_with_new
 	global video_id_counter
 
-	db_video_title = handle_video_descriptions.get_video_title_db(video_id)
-	print(f"Checking: [{db_video_title}]")
+	# db_video_title = handle_video_descriptions.get_video_title_db(video_id)
+	# print(f"Checking: [{db_video_title}]")
 	# give update something is happening
 	# video_id_counter = video_id_counter + 1
 	# if (video_id_counter >= 10):
@@ -200,22 +201,25 @@ def main():
 		# just in case we miss a comment by a second
 		db_ops.set_last_comment_check(time_at_launch)
 
-	# TODO: Add cmd line for reversing video ids
-	# TODO: Check a single (or list?) of video ids from cmd line
-	# TODO: Continious check?
 	video_ids = db_ops.db_get_video_ids(True)
 	if (len(video_ids) > 0):
-		for video_id in video_ids:
-			# reset the youtube object
-			youtube = ""
-			try:
-				video_comments(video_id,last_date_check_utc)
-			except Exception:
-				traceback.print_exc()
-				video_id_errors.append(video_id)
-				if (len(video_id_errors) > 5):
-					print("5 failures occured, aborting")
-					exit()
+		with Progress() as progress:
+			task = progress.add_task("Check for comments", total=len(video_ids))
+			for video_id in video_ids:
+				# give pretty update status
+				db_video_title = handle_video_descriptions.get_video_title_db(video_id)
+				progress.console.print(f"\[{str(video_id)}]: {str(db_video_title)}", highlight=False)
+				# reset the youtube object
+				youtube = ""
+				try:
+					video_comments(video_id,last_date_check_utc)
+				except Exception:
+					traceback.print_exc()
+					video_id_errors.append(video_id)
+					if (len(video_id_errors) > 5):
+						print("5 failures occured, aborting")
+						exit()
+				progress.advance(task)
 
 	if (len(video_id_with_new) > 0):
 		print("\n------------------------------------")
