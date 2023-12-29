@@ -92,9 +92,20 @@ def build_update_list(cols):
 	col_list = "=?,".join(cols) +"=?"
 	return (col_list)
 
-# insert is failing because tags are an array! 
-# gah
+def does_topLevelComment_exist(topLevelCommentId):
+	sql = f"SELECT count(yt_id) FROM yt_commentThreads WHERE yt_id='{topLevelCommentId}'"
+	match_count = db_get_single_element(sql)
+	if (match_count.isnumeric()):
+		if (int(match_count) > 0):
+			print(f"{topLevelCommentId} matched {match_count} rows")
+			return match_count
+		else:
+			print(f"{topLevelCommentId} matched 0 rows, but you shouldn't see this...")
+	else:
+		print(f"{topLevelCommentId} return type None")	
+		return None
 
+# why doesn't this function return anything?
 def does_videoid_exist(video_id_raw):
 	video_id = video_id_raw.strip()
 	sql = f"SELECT count(yt_id) from yt_videos WHERE yt_id='{video_id}'"
@@ -107,6 +118,10 @@ def does_videoid_exist(video_id_raw):
 	else:
 		print(f"{video_id} return type None")
 
+
+# insert is failing because tags are an array! 
+# gah
+		
 # TODO: Handle timestamps better
 def db_update_row(table, id_col, id_val, cols, vals, timestamp="True"):
 	if (timestamp != ""):
