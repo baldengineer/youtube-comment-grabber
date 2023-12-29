@@ -120,9 +120,9 @@ def update_video_descriptions(time_at_launch_gmt):
 			# we only get like 50 results at a time (depends on the call)
 			if 'nextPageToken' in video_response:
 				if (db_verbose): print("### Fetching next page from YouTube API")
-				video_response = youtube.commentThreads().list(
-						part = 'snippet,replies',
-						videoId = video_ids,
+				video_response=youtube.videos().list(
+						part='snippet,contentDetails,statistics',
+						id=video_ids,
 						pageToken = video_response['nextPageToken']
 					).execute()
 			else:
