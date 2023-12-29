@@ -10,7 +10,6 @@ video_id = 'UHwyHcvvem0'
 #video_id = 'UHwyHcvvem0,WQi8g1EBGIw'
 #video_id = 'UHwyHcvvem0,WQi8g1EBGIw,b6jih4osvxQ,JjY1lnMauVc,dbGohcv6uxo,bqdyve-hhZY'
 
-# Todo: Add etag to database
 # Todo: should topLevelComment be an id
 #       so that it links to a comment in the comment table?
 
@@ -65,13 +64,53 @@ def handle_mixed_vals(val):
 		new_value = val
 	return new_value
 
-def update_comments(time_at_launch_gmt):
-	print("shrug")
+# dude, you already pull the comments in the main py. 
+# why you re-writing it silly?
+
+def update_commentThreads(time_at_launch_gmt):
+	print("[commentThreads] Fetching video ids from db...")
+	#video_id_list = db_ops.db_get_video_ids()
+	video_ids = video_id
+
+	# TODO convert to group of 50s
+
+	# create youtube resource object
+	youtube = build('youtube', 'v3', developerKey=yt_api_key)
+
+	# retrieve youtube video results
+	video_response=youtube.commentThreads().list(
+	part='snippet, replies',
+	id=video_ids
+	).execute()	
+	print("Fetch is done", flush=True)
+	print(video_response)
+	while video_response:
+		# extracting required info
+		# from each result object
+
+		# start building the sql query
+		for item in video_response['items']:
+			sql_columns = []
+			sql_values = []
+
+			yt_id = item['id']
+			yt_topLevelComment = item['snippet']['topLevelComment']
+			print(f"Updating [{yt_id}]: {yt_topLevelComment}", flush=True)
+
+		if 'nextPageToken' in video_response:
+			if (db_verbose): print("### Fetching next page from YouTube API")
+			video_response = youtube.commentThreads().list(
+					part = 'snippet,replies',
+					videoId = video_ids,
+					pageToken = video_response['nextPageToken']
+				).execute()
+		else:
+			break
 	return
 
 def main():
 	#print(f"Did you mean to run {path.basename(__file__)} standalone?")
-	update_comments("nothing")
+	update_commentThreads("nothing")
 	exit()
 
 if __name__ == '__main__':
