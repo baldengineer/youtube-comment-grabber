@@ -72,7 +72,7 @@ def get_last_db_update():
 def get_last_comment_check():
 	last_comment_check = db_get_single_element("SELECT last_comment_check FROM meta")
 	#print(f"Last data dump: {last_db_update}")
-	if (last_comment_check is None) or (last_comment_check is ""):
+	if (last_comment_check is None) or (last_comment_check == ""):
 		print("Need to set last_comment_check date in meta table")
 		exit()
 	return last_comment_check
