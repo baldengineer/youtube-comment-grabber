@@ -1,5 +1,6 @@
 from googleapiclient.discovery import build
 from os import path, getenv
+import db_ops as db_ops
 #from . import db_ops # moved to end to prevent import error when standalone
 
 yt_api_key = getenv('YT_API_KEY')
@@ -10,6 +11,9 @@ video_id = 'UHwyHcvvem0'
 #video_id = 'UHwyHcvvem0,WQi8g1EBGIw'
 #video_id = 'UHwyHcvvem0,WQi8g1EBGIw,b6jih4osvxQ,JjY1lnMauVc,dbGohcv6uxo,bqdyve-hhZY'
 
+# todo: remove this before deploy
+
+verbose = True
 # Todo: should topLevelComment be an id
 #       so that it links to a comment in the comment table?
 
@@ -67,50 +71,121 @@ def handle_mixed_vals(val):
 # dude, you already pull the comments in the main py. 
 # why you re-writing it silly?
 
-def update_commentThreads(time_at_launch_gmt):
-	print("[commentThreads] Fetching video ids from db...")
-	#video_id_list = db_ops.db_get_video_ids()
-	video_ids = video_id
+def prep_comment_for_db(item):
+	comment_id = item['snippet']['topLevelComment']['id']
+	replycount = item['snippet']['totalReplyCount']
 
-	# TODO convert to group of 50s
+	print(f"comment_id = [{comment_id}]")
+	print(f"replycount = [{replycount}]")
 
-	# create youtube resource object
+	return False
+
+def video_comments(video_id, last_date_check_utc, verbose=verbose):
+	global video_id_with_new
+	global video_id_counter
+
+	# creating youtube resource object
 	youtube = build('youtube', 'v3', developerKey=yt_api_key)
 
 	# retrieve youtube video results
 	video_response=youtube.commentThreads().list(
-	part='snippet, replies',
-	id=video_ids
-	).execute()	
-	print("Fetch is done", flush=True)
-	print(video_response)
+	part='snippet,replies',
+	videoId=video_id
+	).execute()
+	#video_response = handle_video_ids.yt_api_query(video_id, yt_api_key)
+
+	# ! iterate video response
+	new_comment = False
+	new_reply = False
+	#print(f"video_reponse is {sys.getsizeof(video_response)} bytes")
 	while video_response:
 		# extracting required info
 		# from each result object
-
-		# start building the sql query
+		#  Ref dec: https://developers.google.com/youtube/v3/docs/?apix=true
 		for item in video_response['items']:
-			sql_columns = []
-			sql_values = []
+			# moderationStatus requires authorization (e.g. channel owner)
+			# Extacting comments
 
-			yt_id = item['id']
-			yt_topLevelComment = item['snippet']['topLevelComment']
-			print(f"Updating [{yt_id}]: {yt_topLevelComment}", flush=True)
+			# top level things
+			comment_id = item['snippet']['topLevelComment']['id']
+			replycount = item['snippet']['totalReplyCount']
 
+			# is the id in our database?
+			if (db_ops.does_topLevelComment_exist(comment_id)):
+				# it exists so we need to see if it has been updated
+				print(f"Found [{comment_id}] in database")
+			else:
+				print(f"db does not have [{comment_id}]")
+				# this is a new comment, need to add to db
+				if(prep_comment_for_db(item) == False):
+					print(f"db insert fail for [{comment_id}]")
+
+			break
+
+			
+			
+
+			# snippet level
+			cs = item['snippet']['topLevelComment']['snippet'] #comment_snippet
+			#comment = item['snippet']['topLevelComment']['snippet']['textDisplay']
+
+			# make nice clean string if it has been edited
+			comment_datetime_object = utc.localize(datetime.strptime(cs['updatedAt'], "%Y-%m-%dT%H:%M:%SZ"))
+			if (comment_datetime_object > last_date_check_utc): 
+				new_comment = True
+				if (verbose): print(f"\n\nNew top comment on: https://www.youtube.com/watch?v={video_id}")
+				publish_string = f"Published: {cs['publishedAt']}"
+				if (cs['publishedAt'] != cs['updatedAt']):
+					# hey, they made an edit!
+					publish_string = f"{publish_string}, Edited: {cs['updatedAt']}"
+
+				if (verbose): print(f"({comment_id}): {replycount} replies, Published: {cs['publishedAt']}") 
+				if (verbose): print(f"[{cs['authorDisplayName']}]: {cs['textDisplay']}") 
+
+			# if reply is there
+			if (replycount > 0):
+				# iterate through all reply
+				for reply in item['replies']['comments']:
+					id = item['id']
+					rs = reply['snippet']
+
+					reply_datetime_object = utc.localize(datetime.strptime(rs['updatedAt'], "%Y-%m-%dT%H:%M:%SZ"))
+					if (reply_datetime_object > last_date_check_utc): 
+						new_reply = True
+						if (verbose): print(f"\n\tNew replies")
+						if (verbose): print(f"\t[{rs['authorDisplayName']}]: {rs['textDisplay']}")
+						reply_publish_string = f"[{id}] Published: {rs['publishedAt']}"
+						if (rs['publishedAt'] != rs['updatedAt']):
+							reply_publish_string = f"{reply_publish_string}, Edited: {rs['updatedAt']}"
+
+						if (verbose): print(f"\t{reply_publish_string}\n")
+			#if (verbose): print('\n')
+
+		# Again repeat
 		if 'nextPageToken' in video_response:
-			if (db_verbose): print("### Fetching next page from YouTube API")
 			video_response = youtube.commentThreads().list(
 					part = 'snippet,replies',
-					videoId = video_ids,
+					videoId = video_id,
 					pageToken = video_response['nextPageToken']
 				).execute()
 		else:
 			break
-	return
+	if (new_comment or new_reply):
+		#print(f"New Comment or reply: https://youtube.com/watch?v={video_id}")
+		video_id_with_new.append(video_id)
+
+
 
 def main():
 	#print(f"Did you mean to run {path.basename(__file__)} standalone?")
-	update_commentThreads("nothing")
+	
+	# todo disable this stuff for later.
+
+	if (db_ops.create_connection() == False): exit()
+
+	# todo replace with actual string
+	video_comments(video_id,"gmt string",verbose=True)
+
 	exit()
 
 if __name__ == '__main__':

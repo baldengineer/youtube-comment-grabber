@@ -98,12 +98,13 @@ def does_topLevelComment_exist(topLevelCommentId):
 	if (match_count.isnumeric()):
 		if (int(match_count) > 0):
 			print(f"{topLevelCommentId} matched {match_count} rows")
-			return match_count
+			return True
 		else:
-			print(f"{topLevelCommentId} matched 0 rows, but you shouldn't see this...")
+			print(f"{topLevelCommentId} matched 0 rows")
+			return False
 	else:
-		print(f"{topLevelCommentId} return type None")	
-		return None
+		print(f"{topLevelCommentId} wasn't numeric, returning False")	
+		return False
 
 # why doesn't this function return anything?
 def does_videoid_exist(video_id_raw):
