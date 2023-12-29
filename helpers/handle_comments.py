@@ -6,33 +6,15 @@ yt_api_key = getenv('YT_API_KEY')
 db_verbose = True
 
 # temp video id(s)
-#video_id = 'UHwyHcvvem0'
+video_id = 'UHwyHcvvem0'
 #video_id = 'UHwyHcvvem0,WQi8g1EBGIw'
 #video_id = 'UHwyHcvvem0,WQi8g1EBGIw,b6jih4osvxQ,JjY1lnMauVc,dbGohcv6uxo,bqdyve-hhZY'
-
-# {
-#   "kind": "youtube#commentThread",
-#   "etag": etag,
-#   "id": string,
-#   "snippet": {
-#     "channelId": string,
-#     "videoId": string,
-#     "topLevelComment": comments Resource,
-#     "canReply": boolean,
-#     "totalReplyCount": unsigned integer,
-#     "isPublic": boolean
-#   },
-#   "replies": {
-#     "comments": [
-#       comments Resource
-#     ]
-#   }
-# }
 
 # Todo: Add etag to database
 # Todo: should topLevelComment be an id
 #       so that it links to a comment in the comment table?
 
+# https://developers.google.com/youtube/v3/docs/commentThreads
 commentThread_mapping = {
 	"id" : "yt_id",
 	"etag" : "yt_etag",
@@ -45,13 +27,51 @@ commentThread_mapping = {
 		"isPublic" : "yt_snippet_isPublic",
 	},
 	"replies" :{
-		"comments" : "yt_comments",
+		"comments" : "yt_replies_comments",
 
 	},
 }
 
+# TODO: authorChannelId is nested from the API
+# https://developers.google.com/youtube/v3/docs/comments
+comment_mapping = {
+	"id" : "yt_id",
+	"etag" : "yt_etag",
+	"snippet" : {
+		"authorDisplayName": "yt_snippet_authorDisplayName",
+		"authorProfileImageUrl": "yt_snippet_authorProfileImageUrl",
+		"authorChannelUrl": "yt_snippet_authorChannelUrl",
+		"authorChannelId": 	"yt_snippet_authorChannelId",
+	},
+	"channelId": "yt_channelId",
+	"textDisplay": "yt_textDisplay",
+	"textOriginal": "yt_textOriginal",
+	"parentId": "yt_parentId",
+	"canRate": "yt_canRate",
+	"viewerRating": "yt_viewerRating",
+	"likeCount": "yt_likeCount",
+	"moderationStatus": "yt_moderationStatus",
+	"publishedAt": "yt_publishedAt",
+	"updatedAt": "yt_updatedAt",
+}
+
+def handle_mixed_vals(val):
+	# oh youtube, you give us too many options
+	if (isinstance(val,list)):
+		new_value  = ",".join(val)
+	elif (val.isnumeric()):
+		new_value = int(val)
+	else:
+		new_value = val
+	return new_value
+
+def update_comments(time_at_launch_gmt):
+	print("shrug")
+	return
+
 def main():
-	print(f"Did you mean to run {path.basename(__file__)} standalone?")
+	#print(f"Did you mean to run {path.basename(__file__)} standalone?")
+	update_comments("nothing")
 	exit()
 
 if __name__ == '__main__':
