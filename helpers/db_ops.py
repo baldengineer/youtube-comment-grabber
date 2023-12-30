@@ -144,9 +144,14 @@ def db_insert_row(table, cols, vals, timestamp=True):
 	(col_list,parameter_list) = build_insert_list(cols)
 	#print(f"col_list: {col_list}")
 	#print(f"parameter_list: {parameter_list}")
-	curr = db_conn.cursor()
-	curr.execute(f"INSERT INTO {table}({col_list}) VALUES ({parameter_list})", vals)
-	db_conn.commit()
+	try:
+		curr = db_conn.cursor()
+		curr.execute(f"INSERT INTO {table} ({col_list}) VALUES ({parameter_list})", vals)
+		db_conn.commit()
+		return True
+	except Exception as e:
+		print(f"[db_insert_row]: Insert failed:\n{e}\n\n")
+		return False
 
 def set_last_comment_check(date):
 	curr = db_conn.cursor()
