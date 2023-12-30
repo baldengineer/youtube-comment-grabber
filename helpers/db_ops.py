@@ -92,18 +92,18 @@ def build_update_list(cols):
 	col_list = "=?,".join(cols) +"=?"
 	return (col_list)
 
-def does_topLevelComment_exist(topLevelCommentId):
+def does_topLevelComment_exist(topLevelCommentId, debug=False):
 	sql = f"SELECT count(yt_id) FROM yt_commentThreads WHERE yt_id='{topLevelCommentId}'"
 	match_count = db_get_single_element(sql)
 	if (match_count.isnumeric()):
 		if (int(match_count) > 0):
-			print(f"{topLevelCommentId} matched {match_count} rows")
+			if (debug): print(f"{topLevelCommentId} matched {match_count} rows")
 			return True
 		else:
-			print(f"{topLevelCommentId} matched 0 rows")
+			if (debug): print(f"{topLevelCommentId} matched 0 rows")
 			return False
 	else:
-		print(f"{topLevelCommentId} wasn't numeric, returning False")	
+		print(f"ERROR: [does_topLevelComment_exist]: {topLevelCommentId} wasn't numeric, returning False")	
 		return False
 
 # why doesn't this function return anything?

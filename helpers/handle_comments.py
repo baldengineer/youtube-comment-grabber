@@ -7,9 +7,9 @@ yt_api_key = getenv('YT_API_KEY')
 db_verbose = True
 
 # temp video id(s)
-video_id = 'UHwyHcvvem0'
+#video_id = 'UHwyHcvvem0'
 #video_id = 'UHwyHcvvem0,WQi8g1EBGIw'
-#video_id = 'UHwyHcvvem0,WQi8g1EBGIw,b6jih4osvxQ,JjY1lnMauVc,dbGohcv6uxo,bqdyve-hhZY'
+video_id = 'UHwyHcvvem0,WQi8g1EBGIw,b6jih4osvxQ,JjY1lnMauVc,dbGohcv6uxo,bqdyve-hhZY'
 
 # todo: remove this before deploy
 
@@ -79,19 +79,15 @@ def handle_mixed_vals(val):
 
 # dude, you already pull the comments in the main py. 
 # why you re-writing it silly?
-def prep_comment_for_db(item):
+def prep_comment_for_db(item, debug=False):
 	sql_columns = []
 	sql_values = []
 
 	comment_id = item['snippet']['topLevelComment']['id']
 	replycount = item['snippet']['totalReplyCount']
 
-	print(f"comment_id = [{comment_id}]")
-	print(f"replycount = [{replycount}]")
-
-#db: yt_snippet_topLevelComment_id
-#er: yt_snippet_topLevelComment_id
-
+	if (debug): print(f"comment_id = [{comment_id}]")
+	if (debug): print(f"replycount = [{replycount}]")
 	sql_columns.append("yt_snippet_topLevelComment_id")
 	sql_values.append(comment_id)
 
@@ -103,16 +99,16 @@ def prep_comment_for_db(item):
 				yt_resp_key = obj_key
 				db_column = commentThread_mapping[obj_key]
 				db_value = item[obj_key]
-				print("---")
-				print(f"column: {db_column}")
+				if (debug): print("---")
+				if (debug): print(f"column: {db_column}")
 				sql_columns.append(db_column)
-				print(f"value:  {db_value}")
+				if (debug): print(f"value:  {db_value}")
 				sql_values.append(db_value)
 			except Exception as e:
-				print(f"Failed on{obj_key}.\n{e}")
+				if (debug): print(f"Failed on{obj_key}.\n{e}")
 		# if it is a dict, then it contains other objs, like snippet and replies
 		elif (isinstance(commentThread_mapping[obj_key], dict)):
-			print(f"trying: [{obj_key}]")
+			if (debug): print(f"trying: [{obj_key}]")
 			if (obj_key == "replies"): continue
 			#if (obj_key == "topLevelComment"): continue
 			try:
@@ -122,16 +118,16 @@ def prep_comment_for_db(item):
 					yt_resp_key = obj_key
 					db_column = commentThread_mapping[obj_key][sub_key]
 					db_value = item[obj_key][sub_key]
-					print(f"\tsub_column: {db_column}")
+					if (debug): print(f"\tsub_column: {db_column}")
 					sql_columns.append(db_column)
-					print(f"\tsub_value:  {handle_mixed_vals(db_value)}")
+					if (debug): print(f"\tsub_value:  {handle_mixed_vals(db_value)}")
 					sql_values.append(handle_mixed_vals(db_value))
 			except Exception as e:
 				print(f"WARNING: Failed (probably missing in response) on {obj_key}/{sub_level}.\n{e}\n")
 		else:
 			print(f"unknown: {type(commentThread_mapping[obj_key])}")
 
-	print(f"\n\n\ncols: {sql_columns}\n-\nvals: {sql_values}")				
+	if (debug): print(f"\n\n\ncols: {sql_columns}\n-\nvals: {sql_values}")				
 	try:
 		db_ops.db_insert_row("yt_commentThreads", sql_columns, sql_values, timestamp=False)
 		return True
@@ -237,13 +233,16 @@ def video_comments(video_id, last_date_check_utc, verbose=verbose):
 
 def main():
 	#print(f"Did you mean to run {path.basename(__file__)} standalone?")
-	
+	global video_id
 	# todo disable this stuff for later.
 
 	if (db_ops.create_connection() == False): exit()
 
 	# todo replace with actual string
-	video_comments(video_id,"gmt string",verbose=True)
+	video_ids = video_id
+	#video_comments(video_id,"gmt string",verbose=True)
+	for video_id in video_ids.split(","):
+		video_comments(video_id,"gmt string",verbose=True)
 
 	exit()
 
