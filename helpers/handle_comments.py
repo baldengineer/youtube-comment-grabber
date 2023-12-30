@@ -7,9 +7,9 @@ yt_api_key = getenv('YT_API_KEY')
 db_verbose = True
 
 # temp video id(s)
-#video_id = 'UHwyHcvvem0'
+video_id = 'UHwyHcvvem0'
 #video_id = 'UHwyHcvvem0,WQi8g1EBGIw'
-video_id = 'UHwyHcvvem0,WQi8g1EBGIw,b6jih4osvxQ,JjY1lnMauVc,dbGohcv6uxo,bqdyve-hhZY'
+#video_id = 'UHwyHcvvem0,WQi8g1EBGIw,b6jih4osvxQ,JjY1lnMauVc,dbGohcv6uxo,bqdyve-hhZY'
 
 # todo: remove this before deploy
 
@@ -45,17 +45,17 @@ comment_mapping = {
 		"authorProfileImageUrl": "yt_snippet_authorProfileImageUrl",
 		"authorChannelUrl": "yt_snippet_authorChannelUrl",
 		"authorChannelId": 	"yt_snippet_authorChannelId",
+		"channelId": "yt_channelId",
+		"textDisplay": "yt_textDisplay",
+		"textOriginal": "yt_textOriginal",
+		"parentId": "yt_parentId",
+		"canRate": "yt_canRate",
+		"viewerRating": "yt_viewerRating",
+		"likeCount": "yt_likeCount",
+		"moderationStatus": "yt_moderationStatus",
+		"publishedAt": "yt_publishedAt",
+		"updatedAt": "yt_updatedAt",
 	},
-	"channelId": "yt_channelId",
-	"textDisplay": "yt_textDisplay",
-	"textOriginal": "yt_textOriginal",
-	"parentId": "yt_parentId",
-	"canRate": "yt_canRate",
-	"viewerRating": "yt_viewerRating",
-	"likeCount": "yt_likeCount",
-	"moderationStatus": "yt_moderationStatus",
-	"publishedAt": "yt_publishedAt",
-	"updatedAt": "yt_updatedAt",
 }
 
 # TODO: started as same function in handle_video_desc, now updated.
@@ -109,21 +109,31 @@ def prep_comment_for_db(item, debug=False):
 		# if it is a dict, then it contains other objs, like snippet and replies
 		elif (isinstance(commentThread_mapping[obj_key], dict)):
 			if (debug): print(f"trying: [{obj_key}]")
-			if (obj_key == "replies"): continue
-			#if (obj_key == "topLevelComment"): continue
-			try:
-				sub_level = commentThread_mapping[obj_key]
-				for sub_key in sub_level.keys():
-					if (sub_key == "topLevelComment"): continue
-					yt_resp_key = obj_key
-					db_column = commentThread_mapping[obj_key][sub_key]
-					db_value = item[obj_key][sub_key]
-					if (debug): print(f"\tsub_column: {db_column}")
-					sql_columns.append(db_column)
-					if (debug): print(f"\tsub_value:  {handle_mixed_vals(db_value)}")
-					sql_values.append(handle_mixed_vals(db_value))
-			except Exception as e:
-				print(f"WARNING: Failed (probably missing in response) on {obj_key}/{sub_level}.\n{e}\n")
+			if (obj_key == "replies"): 
+				print("Processing replies[comments] object")
+				for comment in item['replies']['comments']:		
+					# print("-")
+					# print(comment)
+					# print("--")
+					print(f"         id: {comment['id']}")
+					print(f"   parentId: {comment['snippet']['parentId']}")
+					print(f"DisplayName: {comment['snippet']['authorDisplayName']}")
+					print(f"Comment: {comment['snippet']['textDisplay']}")
+			else:
+				#if (obj_key == "topLevelComment"): continue
+				try:
+					sub_level = commentThread_mapping[obj_key]
+					for sub_key in sub_level.keys():
+						if (sub_key == "topLevelComment"): continue
+						yt_resp_key = obj_key
+						db_column = commentThread_mapping[obj_key][sub_key]
+						db_value = item[obj_key][sub_key]
+						if (debug): print(f"\tsub_column: {db_column}")
+						sql_columns.append(db_column)
+						if (debug): print(f"\tsub_value:  {handle_mixed_vals(db_value)}")
+						sql_values.append(handle_mixed_vals(db_value))
+				except Exception as e:
+					print(f"WARNING: Failed (probably missing in response) on {obj_key}/{sub_level}.\n{e}\n")
 		else:
 			print(f"unknown: {type(commentThread_mapping[obj_key])}")
 
@@ -168,17 +178,15 @@ def video_comments(video_id, last_date_check_utc, verbose=verbose):
 			# is the id in our database?
 			if (db_ops.does_topLevelComment_exist(comment_id)):
 				# it exists so we need to see if it has been updated
-				print(f"Found [{comment_id}] in database")
+				print(f"For video [{video_id}], found [{comment_id}] in db ADDING IT ANYWAY")
+				if(prep_comment_for_db(item) == False):
+					print(f"db insert fail for [{comment_id}]")
 			else:
-				print(f"db does not have [{comment_id}]")
+				print(f"For video [{video_id}], [{comment_id}] is new, attempting add")
 				# this is a new comment, need to add to db
 				if(prep_comment_for_db(item) == False):
 					print(f"db insert fail for [{comment_id}]")
-
 			break
-
-			
-			
 
 			# snippet level
 			cs = item['snippet']['topLevelComment']['snippet'] #comment_snippet
