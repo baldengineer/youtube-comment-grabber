@@ -22,11 +22,11 @@ commentThread_mapping = {
 	"id" : "yt_id",
 	"etag" : "yt_etag",
 	"snippet" : {
-		"channelId" : "yt_snippet_channleId",
+		"channelId" : "yt_snippet_channelId",
 		"videoId" : "yt_snippet_videoId",
 		"topLevelComment": "yt_snippet_topLevelComment",
 		"canReply": "yt_snippet_canReply",
-		"totalReplyCount" : "yt_snippet_totalReplayCount",
+		"totalReplyCount" : "yt_snippet_totalReplyCount",
 		"isPublic" : "yt_snippet_isPublic",
 	},
 	"replies" :{
@@ -58,27 +58,86 @@ comment_mapping = {
 	"updatedAt": "yt_updatedAt",
 }
 
+# TODO: started as same function in handle_video_desc, now updated.
 def handle_mixed_vals(val):
 	# oh youtube, you give us too many options
+	#print(f"\t\t{val} = {type(val)}")
 	if (isinstance(val,list)):
 		new_value  = ",".join(val)
-	elif (val.isnumeric()):
-		new_value = int(val)
+	elif (isinstance(val,int)):
+		# i guess bool is an int? lol
+		if (isinstance(val,bool)):
+			if (val):
+				new_value = "True"
+			else:
+				new_value = "False"
+		else:
+			new_value = int(val)
 	else:
 		new_value = val
 	return new_value
 
 # dude, you already pull the comments in the main py. 
 # why you re-writing it silly?
-
 def prep_comment_for_db(item):
+	sql_columns = []
+	sql_values = []
+
 	comment_id = item['snippet']['topLevelComment']['id']
 	replycount = item['snippet']['totalReplyCount']
 
 	print(f"comment_id = [{comment_id}]")
 	print(f"replycount = [{replycount}]")
 
-	return False
+#db: yt_snippet_topLevelComment_id
+#er: yt_snippet_topLevelComment_id
+
+	sql_columns.append("yt_snippet_topLevelComment_id")
+	sql_values.append(comment_id)
+
+	for obj_key in commentThread_mapping.keys():
+		# if the obj_key is a str, then it is "top level" in the json structure
+		if (isinstance(commentThread_mapping[obj_key], str)):
+			# top level key like thread
+			try:
+				yt_resp_key = obj_key
+				db_column = commentThread_mapping[obj_key]
+				db_value = item[obj_key]
+				print("---")
+				print(f"column: {db_column}")
+				sql_columns.append(db_column)
+				print(f"value:  {db_value}")
+				sql_values.append(db_value)
+			except Exception as e:
+				print(f"Failed on{obj_key}.\n{e}")
+		# if it is a dict, then it contains other objs, like snippet and replies
+		elif (isinstance(commentThread_mapping[obj_key], dict)):
+			print(f"trying: [{obj_key}]")
+			if (obj_key == "replies"): continue
+			#if (obj_key == "topLevelComment"): continue
+			try:
+				sub_level = commentThread_mapping[obj_key]
+				for sub_key in sub_level.keys():
+					if (sub_key == "topLevelComment"): continue
+					yt_resp_key = obj_key
+					db_column = commentThread_mapping[obj_key][sub_key]
+					db_value = item[obj_key][sub_key]
+					print(f"\tsub_column: {db_column}")
+					sql_columns.append(db_column)
+					print(f"\tsub_value:  {handle_mixed_vals(db_value)}")
+					sql_values.append(handle_mixed_vals(db_value))
+			except Exception as e:
+				print(f"WARNING: Failed (probably missing in response) on {obj_key}/{sub_level}.\n{e}\n")
+		else:
+			print(f"unknown: {type(commentThread_mapping[obj_key])}")
+
+	print(f"\n\n\ncols: {sql_columns}\n-\nvals: {sql_values}")				
+	try:
+		db_ops.db_insert_row("yt_commentThreads", sql_columns, sql_values, timestamp=False)
+		return True
+	except Exception as e:
+		print(f"insert failed\n{e}\n")
+		return False
 
 def video_comments(video_id, last_date_check_utc, verbose=verbose):
 	global video_id_with_new
