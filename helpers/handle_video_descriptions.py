@@ -113,7 +113,8 @@ def update_video_descriptions(time_at_launch_gmt):
 				#print(f"\n\n\ncols:{sql_columns}")
 				#print(f"\nvals:{sql_values}")
 				#db_ops.db_insert_row("yt_videos",sql_columns,sql_values)
-				db_ops.db_update_row("yt_videos","yt_id",yt_id,sql_columns,sql_values,timestamp="time_at_launch_gmt")
+				# TODO This should be the timestamp at launch!
+				db_ops.db_update_row("yt_videos","yt_id",yt_id,sql_columns,sql_values,timestamp=True)
 
 
 			# keep refreshing video_response object if there are more pages to grab 
