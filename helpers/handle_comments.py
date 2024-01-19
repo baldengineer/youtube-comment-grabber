@@ -1,6 +1,7 @@
 from googleapiclient.discovery import build
 from os import path, getenv
 import db_ops as db_ops
+
 #from . import db_ops # moved to end to prevent import error when standalone
 
 yt_api_key = getenv('YT_API_KEY')
@@ -39,22 +40,22 @@ commentThread_mapping = {
 # https://developers.google.com/youtube/v3/docs/comments
 comment_mapping = {
 	"id" : "yt_id",
-	"etag" : "yt_etag",
+	"etag" : "yt_etag", 
 	"snippet" : {
 		"authorDisplayName": "yt_snippet_authorDisplayName",
 		"authorProfileImageUrl": "yt_snippet_authorProfileImageUrl",
 		"authorChannelUrl": "yt_snippet_authorChannelUrl",
 		"authorChannelId": 	"yt_snippet_authorChannelId",
-		"channelId": "yt_channelId",
-		"textDisplay": "yt_textDisplay",
-		"textOriginal": "yt_textOriginal",
-		"parentId": "yt_parentId",
-		"canRate": "yt_canRate",
-		"viewerRating": "yt_viewerRating",
-		"likeCount": "yt_likeCount",
-		"moderationStatus": "yt_moderationStatus",
-		"publishedAt": "yt_publishedAt",
-		"updatedAt": "yt_updatedAt",
+		"channelId": "yt_snippet_channelId",
+		"textDisplay": "yt_snippet_textDisplay",
+		"textOriginal": "yt_snippet_textOriginal",
+		"parentId": "yt_snippet_parentId",
+		"canRate": "yt_snippet_canRate",
+		"viewerRating": "yt_snippet_viewerRating",
+		"likeCount": "yt_snippet_likeCount",
+		"moderationStatus": "yt_snippet_moderationStatus",
+		"publishedAt": "yt_snippet_publishedAt",
+		"updatedAt": "yt_snippet_updatedAt",
 	},
 }
 
@@ -79,7 +80,7 @@ def handle_mixed_vals(val):
 
 # dude, you already pull the comments in the main py. 
 # why you re-writing it silly?
-def prep_comment_for_db(item, debug=False):
+def prep_comment_for_db(item, debug=True):
 	sql_columns = []
 	sql_values = []
 
@@ -105,20 +106,71 @@ def prep_comment_for_db(item, debug=False):
 				if (debug): print(f"value:  {db_value}")
 				sql_values.append(db_value)
 			except Exception as e:
-				if (debug): print(f"Failed on{obj_key}.\n{e}")
+				if (debug): print(f"Failed on {obj_key}.\n{e}")
 		# if it is a dict, then it contains other objs, like snippet and replies
 		elif (isinstance(commentThread_mapping[obj_key], dict)):
 			if (debug): print(f"trying: [{obj_key}]")
 			if (obj_key == "replies"): 
 				print("Processing replies[comments] object")
-				for comment in item['replies']['comments']:		
-					# print("-")
-					# print(comment)
-					# print("--")
-					print(f"         id: {comment['id']}")
-					print(f"   parentId: {comment['snippet']['parentId']}")
-					print(f"DisplayName: {comment['snippet']['authorDisplayName']}")
-					print(f"Comment: {comment['snippet']['textDisplay']}")
+				replies = item['replies']
+				comments = replies['comments']
+				# TODO: need to check if comment exists and if it needs updating.
+				for comment in comments:
+					comment_id = comment['id']
+					comment_etag = comment['etag']
+					sub_sql_columns = []
+					sub_sql_values = []
+					
+					sub_sql_columns.append('yt_id')
+					sub_sql_values.append(comment_id)
+
+					sub_sql_columns.append('yt_etag')
+					sub_sql_values.append(comment_etag)
+
+					for sub_key in comment_mapping['snippet']:
+						try:
+							if (debug): print(f"Processing {sub_key}")
+							if (sub_key == 'authorChannelId'):
+								db_column = comment_mapping['snippet']['authorChannelId']
+								db_value = comment['snippet']['authorChannelId']['value']
+							else:
+								db_column = comment_mapping['snippet'][sub_key]
+								db_value = comment['snippet'][sub_key]
+
+							if (debug): print("---")
+							if (debug): print(f"column: {db_column}")
+							sub_sql_columns.append(db_column)
+							if (debug): print(f"value:  {db_value}")
+							sub_sql_values.append(db_value)						
+
+						except Exception as e:
+							if (debug): print(f"*** Failed on {sub_key}.\n{e}\n")
+					if (debug): print(f"sql_columns: {sub_sql_columns}")
+					if (debug): print(f"sql_values: {sub_sql_values}")
+					db_ops.db_insert_row("yt_comments", sub_sql_columns, sub_sql_values, timestamp=False)
+					# print(f"         id: {comment_id}")
+					# print(f"   parentId: {comment['snippet']['parentId']}")
+					# print(f"DisplayName: {comment['snippet']['authorDisplayName']}")
+					# print(f"Comment: {comment['snippet']['textDisplay']}")
+
+				print("-")
+# {'kind': 'youtube#comment',
+#  'etag': '_YVGBpP_cvj2-U_rxLLaYpaoLw4',
+#  'id': 'UgwcQWgW-vXNIenm2zp4AaABAg.9utLX0FqyVP9uyHMDt-FnX', 
+#  'snippet': 
+#  	{'channelId': 'UChturLXwYxwTOf_5krs0qvA', 
+#  	'videoId': 'UHwyHcvvem0', 
+#  	'textDisplay': 'Glad you liked it!', 
+#  	'textOriginal': 'Glad you liked it!', 
+#  	'parentId': 'UgwcQWgW-vXNIenm2zp4AaABAg',
+#  	'authorDisplayName': '@element14presents',
+#  	'authorProfileImageUrl': 
+#  	'https://yt3.ggpht.com/gx1dfUyZ8SXnrO4QA20x8RBhzHZNfODrySzxnyFmxtqo3XYTNVkBdRbOMw2EMz6x-CqU0fDJ=s48-c-k-c0x00ffffff-no-rj', 
+# 	'authorChannelUrl': 'http://www.youtube.com/channel/UChturLXwYxwTOf_5krs0qvA', 
+#  	'authorChannelId': {...}, ...
+#  	}
+# }
+
 			else:
 				#if (obj_key == "topLevelComment"): continue
 				try:
