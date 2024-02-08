@@ -12,6 +12,7 @@ from rich.progress import Progress
 
 from helpers import handle_video_ids
 from helpers import handle_video_descriptions
+from helpers import handle_comments
 from helpers import db_ops
 
 # TODO: Incorporate Rich (and maybe Textual) https://github.com/Textualize/rich
@@ -82,97 +83,6 @@ except:
 	print("ptzy is not happy with timezone string")
 	exit()
 
-def video_comments(video_id, last_date_check_utc, verbose=verbose):
-	global video_id_with_new
-	global video_id_counter
-
-	# db_video_title = handle_video_descriptions.get_video_title_db(video_id)
-	# print(f"Checking: [{db_video_title}]")
-	# give update something is happening
-	# video_id_counter = video_id_counter + 1
-	# if (video_id_counter >= 10):
-	# 	video_id_counter = 0
-	#	print(".")
-	# else:
-	# 	print(".", end='', flush=True)
-
-	#if (verbose): print(f"Handling: https://www.youtube.com/watch?v={video_id}")
-
-	# creating youtube resource object
-	youtube = build('youtube', 'v3', developerKey=yt_api_key)
-
-	# retrieve youtube video results
-	video_response=youtube.commentThreads().list(
-	part='snippet,replies',
-	videoId=video_id
-	).execute()
-	#video_response = handle_video_ids.yt_api_query(video_id, yt_api_key)
-
-	# ! iterate video response
-	new_comment = False
-	new_reply = False
-	#print(f"video_reponse is {sys.getsizeof(video_response)} bytes")
-	while video_response:
-		# extracting required info
-		# from each result object
-		#  Ref dec: https://developers.google.com/youtube/v3/docs/?apix=true
-		for item in video_response['items']:
-			# moderationStatus requires authorization (e.g. channel owner)
-			# Extacting comments
-
-			# top level things
-			comment_id = item['snippet']['topLevelComment']['id']
-			replycount = item['snippet']['totalReplyCount']
-
-			# snippet level
-			cs = item['snippet']['topLevelComment']['snippet'] #comment_snippet
-			#comment = item['snippet']['topLevelComment']['snippet']['textDisplay']
-
-			# make nice clean string if it has been edited
-			comment_datetime_object = utc.localize(datetime.strptime(cs['updatedAt'], "%Y-%m-%dT%H:%M:%SZ"))
-			if (comment_datetime_object > last_date_check_utc): 
-				new_comment = True
-				if (verbose): print(f"\n\nNew top comment on: https://www.youtube.com/watch?v={video_id}")
-				publish_string = f"Published: {cs['publishedAt']}"
-				if (cs['publishedAt'] != cs['updatedAt']):
-					# hey, they made an edit!
-					publish_string = f"{publish_string}, Edited: {cs['updatedAt']}"
-
-				if (verbose): print(f"({comment_id}): {replycount} replies, Published: {cs['publishedAt']}") 
-				if (verbose): print(f"[{cs['authorDisplayName']}]: {cs['textDisplay']}") 
-
-			# if reply is there
-			if (replycount > 0):
-				# iterate through all reply
-				for reply in item['replies']['comments']:
-					id = item['id']
-					rs = reply['snippet']
-
-					reply_datetime_object = utc.localize(datetime.strptime(rs['updatedAt'], "%Y-%m-%dT%H:%M:%SZ"))
-					if (reply_datetime_object > last_date_check_utc): 
-						new_reply = True
-						if (verbose): print(f"\n\tNew replies")
-						if (verbose): print(f"\t[{rs['authorDisplayName']}]: {rs['textDisplay']}")
-						reply_publish_string = f"[{id}] Published: {rs['publishedAt']}"
-						if (rs['publishedAt'] != rs['updatedAt']):
-							reply_publish_string = f"{reply_publish_string}, Edited: {rs['updatedAt']}"
-
-						if (verbose): print(f"\t{reply_publish_string}\n")
-			#if (verbose): print('\n')
-
-		# Again repeat
-		if 'nextPageToken' in video_response:
-			video_response = youtube.commentThreads().list(
-					part = 'snippet,replies',
-					videoId = video_id,
-					pageToken = video_response['nextPageToken']
-				).execute()
-		else:
-			break
-	if (new_comment or new_reply):
-		#print(f"New Comment or reply: https://youtube.com/watch?v={video_id}")
-		video_id_with_new.append(video_id)
-
 def print_id_with_urL(video_ids):
 	for video_id in video_ids:
 		print(f"https://youtube.com/watch?v={video_id}")
@@ -189,6 +99,8 @@ def main():
 	# TODO: Need to check if comments changed!
 	# get video_ids for updating comments
 	video_ids = db_ops.db_get_video_ids(True)
+	video_id_errors = 0 # failsafe
+
 	if (len(video_ids) > 0):
 		with Progress() as progress:
 			task = progress.add_task("Checking for comments", total=len(video_ids))
@@ -200,7 +112,7 @@ def main():
 				# reset the youtube object
 				youtube = ""
 				try:
-					video_comments(video_id,last_date_check_utc)
+					video_comments(video_id, time_at_launch_gmt)
 				except Exception:
 					traceback.print_exc()
 					video_id_errors.append(video_id)
