@@ -83,47 +83,52 @@ def handle_mixed_vals(val):
 # why you re-writing it silly?
 
 def handle_comments(comments, debug=True):
-	print("Handling comments")
+	print("...[Handling a MULTIPLE comments]...")
+	for comment in comments:
+		handle_one_comment(comment, debug=debug)
+
+def handle_one_comment(comment, debug=True):
+	print("...[Handling a SINGLE comments]...")
 #	replies = item['replies']
 	#comments = replies['comments']
 	# TODO: need to check if comment exists and if it needs updating.
-	for comment in comments:
-		comment_id = comment['id']
-		comment_etag = comment['etag']
-		sub_sql_columns = []
-		sub_sql_values = []
-		
-		sub_sql_columns.append('yt_id')
-		sub_sql_values.append(comment_id)
+	
+	comment_id = comment['id']
+	comment_etag = comment['etag']
+	sub_sql_columns = []
+	sub_sql_values = []
+	
+	sub_sql_columns.append('yt_id')
+	sub_sql_values.append(comment_id)
 
-		sub_sql_columns.append('yt_etag')
-		sub_sql_values.append(comment_etag)
+	sub_sql_columns.append('yt_etag')
+	sub_sql_values.append(comment_etag)
 
-		for sub_key in comment_mapping['snippet']:
-			try:
-				if (debug): print(f"Processing {sub_key}")
-				if (sub_key == 'authorChannelId'):
-					db_column = comment_mapping['snippet']['authorChannelId']
-					db_value = comment['snippet']['authorChannelId']['value']
-				else:
-					db_column = comment_mapping['snippet'][sub_key]
-					db_value = comment['snippet'][sub_key]
+	for sub_key in comment_mapping['snippet']:
+		try:
+			if (debug): print(f"Processing {sub_key}")
+			if (sub_key == 'authorChannelId'):
+				db_column = comment_mapping['snippet']['authorChannelId']
+				db_value = comment['snippet']['authorChannelId']['value']
+			else:
+				db_column = comment_mapping['snippet'][sub_key]
+				db_value = comment['snippet'][sub_key]
 
-				if (debug): print("---")
-				if (debug): print(f"column: {db_column}")
-				sub_sql_columns.append(db_column)
-				if (debug): print(f"value:  {db_value}")
-				sub_sql_values.append(db_value)						
+			if (debug): print("---")
+			if (debug): print(f"column: {db_column}")
+			sub_sql_columns.append(db_column)
+			if (debug): print(f"value:  {db_value}")
+			sub_sql_values.append(db_value)						
 
-			except Exception as e:
-				if (debug): print(f"*** Failed on {sub_key}.\n{e}\n")
-		if (debug): print(f"sql_columns: {sub_sql_columns}")
-		if (debug): print(f"sql_values: {sub_sql_values}")
-		db_ops.db_insert_row("yt_comments", sub_sql_columns, sub_sql_values, timestamp=False)
-		# print(f"         id: {comment_id}")
-		# print(f"   parentId: {comment['snippet']['parentId']}")
-		# print(f"DisplayName: {comment['snippet']['authorDisplayName']}")
-		# print(f"Comment: {comment['snippet']['textDisplay']}")
+		except Exception as e:
+			if (debug): print(f"*** Failed on {sub_key}.\n{e}\n")
+	if (debug): print(f"sql_columns: {sub_sql_columns}")
+	if (debug): print(f"sql_values: {sub_sql_values}")
+	db_ops.db_insert_row("yt_comments", sub_sql_columns, sub_sql_values, timestamp=False)
+	# print(f"         id: {comment_id}")
+	# print(f"   parentId: {comment['snippet']['parentId']}")
+	# print(f"DisplayName: {comment['snippet']['authorDisplayName']}")
+	# print(f"Comment: {comment['snippet']['textDisplay']}")
 	print("!!! DONE with handle_comments")
 
 def prep_comment_for_db(item, debug=True):
@@ -160,7 +165,7 @@ def prep_comment_for_db(item, debug=True):
 		if isinstance(item['snippet'][snippet_key], dict):
 			# handling topLevelComment (not sure if this shows up in replies)
 			if (debug): print(f"Got dict: {snippet_key}")
-			handle_comments(item['snippet']['topLevelComment'])
+			handle_one_comment(item['snippet']['topLevelComment'])
 		else:
 			yt_snippet_key = snippet_key # probably not needed, but I did it before, I guess
 			db_column = commentThread_mapping['snippet'][snippet_key]
