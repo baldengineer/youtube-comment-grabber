@@ -1,6 +1,9 @@
 from googleapiclient.discovery import build
 from os import path, getenv
-import db_ops as db_ops
+try:
+	import db_ops as db_ops
+except:
+	standalone = False
 
 #from . import db_ops # moved to end to prevent import error when standalone
 
@@ -142,10 +145,27 @@ def handle_one_comment(comment, timestamp, debug=False):
 	# print(f"Comment: {comment['snippet']['textDisplay']}")
 	
 
+def update_topLevelComment(item, timestamp):
+	# update the top Level table and then go find new replies
+	commentThread_id = item['id']
+	etag_id = item['etag']
+	topLevelComment_id = item['snippet']['topLevelComment']['id']
+	replycount = int(item['snippet']['totalReplyCount'])
+
+	sql = f"UPDATE yt_commentThreads SET yt_snippet_totalReplyCount={replycount} WHERE yt_id='{topLevelComment_id}'"
+	#def db_update_row(table, id_col, id_val, cols, vals, timestamp="True"):
+	try:
+		db_ops.db_update_row('yt_commentThreads', 'yt_id', topLevelComment_id, ['yt_snippet_totalReplyCount'], [replycount], timestamp)
+	except:
+		print("!!! Failed to update replycount")
+		return False
+
+	return True
+
+
 def prep_comment_for_db(item, timestamp, debug=False):
 	sql_columns = []
 	sql_values = []
-
 
 	#! Step Number One
 	# get top level id information
@@ -254,11 +274,16 @@ def video_comments(video_id, timestamp, verbose=verbose):
 			# is the id in our database?
 			if (db_ops.does_topLevelComment_exist(comment_id)):
 				# it exists so we need to see if it has been updated
-				print(f"+ For video [{video_id}], found [{comment_id}] in db ADDING IT ANYWAY")
-				if(prep_comment_for_db(item, timestamp) == False):
-					print(f"!!! db insert fail for [{comment_id}]")
+				print(f"+ For video [{video_id}], found [{comment_id}] aready EXISTS in db")
+				db_replyCount = db_ops.get_replyCount(comment_id)
+				if (replycount == db_replyCount):
+					print(f"+ Reply counts are the same, skipping")
+				else:
+					if (update_topLevelComment(item, timestamp) == False):
+						printf(f"!!! update failed for [{comment_id}]")
+
 			else:
-				print(f"+ For video [{video_id}], [{comment_id}] is new, attempting add")
+				print(f"+ For video [{video_id}], [{comment_id}] is new, attempting ADD")
 				# this is a new comment, need to add to db
 				if(prep_comment_for_db(item, timestamp) == False):
 					print(f"!!! db insert fail for [{comment_id}]")

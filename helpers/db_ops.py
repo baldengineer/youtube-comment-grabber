@@ -64,6 +64,11 @@ def get_database_schema_version():
 	print(f"Database schema ver: {version}")
 	return version
 
+def get_replyCount(comment_id):
+	sql = f"select yt_snippet_totalReplyCount from yt_CommentThreads where yt_id='{comment_id}'"
+	replyCount = int(db_get_single_element(sql))
+	return replyCount
+
 def get_last_db_update():
 	last_db_update = db_get_single_element("SELECT last_db_update FROM meta")
 	print(f"Last data dump: {last_db_update}")

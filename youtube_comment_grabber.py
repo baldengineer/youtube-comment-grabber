@@ -112,7 +112,7 @@ def main():
 				# reset the youtube object
 				youtube = ""
 				try:
-					video_comments(video_id, time_at_launch_gmt)
+					handle_comments.video_comments(video_id, time_at_launch_gmt)
 				except Exception:
 					traceback.print_exc()
 					video_id_errors.append(video_id)
