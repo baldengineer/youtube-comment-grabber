@@ -19,13 +19,14 @@ verbose = True
 #       so that it links to a comment in the comment table?
 
 # https://developers.google.com/youtube/v3/docs/commentThreads
+# TODO: need to handle integers better
 commentThread_mapping = {
 	"id" : "yt_id",
 	"etag" : "yt_etag",
 	"snippet" : {
 		"channelId" : "yt_snippet_channelId",
 		"videoId" : "yt_snippet_videoId",
-		"topLevelComment": "yt_snippet_topLevelComment",
+		"topLevelComment": "yt_snippet_topLevelComment_Id",
 		"canReply": "yt_snippet_canReply",
 		"totalReplyCount" : "yt_snippet_totalReplyCount",
 		"isPublic" : "yt_snippet_isPublic",
@@ -128,26 +129,63 @@ def prep_comment_for_db(item, debug=True):
 	sql_columns = []
 	sql_values = []
 
-	comment_id = item['snippet']['topLevelComment']['id']
+
+	#! Step Number One
+	# get top level id information
+	commentThread_id = item['id']
+	etag_id = item['etag']
+	topLevelComment_id = item['snippet']['topLevelComment']['id']
 	replycount = item['snippet']['totalReplyCount']
 
-	if (debug): print(f"comment_id = [{comment_id}]")
+	if (debug): print(f"commentThread_id = [{commentThread_id}]")
+	sql_columns.append("yt_id")
+	sql_values.append(commentThread_id)
+	#
+	if (debug): print(f"etag_id = [{etag_id}]")
+	sql_columns.append("yt_etag")
+	sql_values.append(etag_id)
+	# may not need the comment id, I think it's a hold over from
+	# a previous bad idea
+	if (debug): print(f"topLevelComment_id = [{topLevelComment_id}]")
+	#sql_columns.append("yt_snippet_topLevelComment")
+	#sql_values.append(topLevelComment_id)
+	#
 	if (debug): print(f"replycount = [{replycount}]")
-	sql_columns.append("yt_snippet_topLevelComment_id")
-	sql_values.append(comment_id)
-
-	# handle the snippet of commentThread
+	
+	#! Step Number Two
+	# prep the snippet section
 	if (debug): print("\nGathering snippet information")
 	for snippet_key in item['snippet']:
 		print(f"{snippet_key}: {item['snippet'][snippet_key]}")
 		yt_snippet_key = snippet_key # probably not needed, but I did it before, I guess
 		db_column = commentThread_mapping['snippet'][snippet_key]
-		db_value = item['snippet'][snippet_key]
+		if (snippet_key.lower() == 'totalreplycount'):
+			db_value = int(item['snippet'][snippet_key])
+		else:
+			db_value = item['snippet'][snippet_key]
 		if (debug): print(f"column: {db_column}")
 		sql_columns.append(db_column)
 		if (debug): print(f"value:  {db_value}")
 		sql_values.append(db_value)
 
+# TODO ARGH, commentThread contains topLevelComment, not just the id! It's a whole comment!
+
+# ===
+# ['yt_id', 'yt_etag', 'yt_snippet_channelId', 'yt_snippet_videoId', 'yt_snippet_topLevelComment_Id', 'yt_snippet_canReply', 'yt_snippet_totalReplyCount', 'yt_snippet_isPublic']
+# ---
+# ['UgwcQWgW-vXNIenm2zp4AaABAg', 'uXryHIsvIq1IaeN95aag-VPlYio', 'UChturLXwYxwTOf_5krs0qvA', 'UHwyHcvvem0', {'kind': 'youtube#comment', 'etag': 'IWXNwCriVSfpGX9W739IpHajFlA', 'id': 'UgwcQWgW-vXNIenm2zp4AaABAg', 'snippet': {'channelId': 'UChturLXwYxwTOf_5krs0qvA', 'videoId': 'UHwyHcvvem0', 'textDisplay': 'Excellent video!', 'textOriginal': 'Excellent video!', 'authorDisplayName': '@emailuser3869', 'authorProfileImageUrl': 'https://yt3.ggpht.com/ytc/AIf8zZQVixOWKH-4_i1xZJiTW7iZTpgQAcv1c66-Pw=s48-c-k-c0x00ffffff-no-rj', 'authorChannelUrl': 'http://www.youtube.com/@emailuser3869', 'authorChannelId': {'value': 'UCNuB_KQTLhTQjNqgcbvx62w'}, 'canRate': True, 'viewerRating': 'none', 'likeCount': 0, 'publishedAt': '2023-09-20T15:52:54Z', 'updatedAt': '2023-09-20T15:52:54Z'}}, True, 1, True] 
+# ===
+
+	# TODO: Need to add timestamp
+	# TODO: check to see if thread already exists and needs an update
+	print("===")
+	print(sql_columns)
+	print("---")
+	print(sql_values)
+	print("===")
+	db_ops.db_insert_row("yt_commentThreads", sql_columns, sql_values, timestamp=False)
+
+	#! Step Number Three
 	if (debug): print("\nGathering commentThread_mapping")
 	for obj_key in commentThread_mapping.keys():
 		# if the obj_key is a str, then it is "top level" in the json structure
