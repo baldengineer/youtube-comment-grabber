@@ -8,9 +8,12 @@ yt_api_key = getenv('YT_API_KEY')
 db_verbose = True
 
 # temp video id(s)
-#video_id = 'UHwyHcvvem0'
-video_id = 'UHwyHcvvem0,WQi8g1EBGIw'
-#video_id = 'UHwyHcvvem0,WQi8g1EBGIw,b6jih4osvxQ,JjY1lnMauVc,dbGohcv6uxo,bqdyve-hhZY'
+video_id = 'UHwyHcvvem0'
+#video_id = 'UHwyHcvvem0,WQi8g1EBGIw'
+#video_id = 'gFCD4s_hsb4' # Mega IIe
+#video_id = 'bqdyve-hhZY' # si vs sic
+
+#video_id = 'UHwyHcvvem0,WQi8g1EBGIw,b6jih4osvxQ,JjY1lnMauVc,dbGohcv6uxo,bqdyve-hhZY,gFCD4s_hsb4'
 
 # todo: remove this before deploy
 verbose = True
@@ -77,13 +80,15 @@ def handle_mixed_vals(val):
 		new_value = val
 	return new_value
 
-def handle_comments(comments, debug=True):
-	print("...[Handling a MULTIPLE comments]...")
+def handle_comments(comments, timestamp, debug=False):
+	if (debug): print("...[Handling a MULTIPLE comments]...")
 	for comment in comments:
-		handle_one_comment(comment, debug=debug)
+		handle_one_comment(comment, timestamp, debug=debug)
 
-def handle_one_comment(comment, debug=True):
-	print("...[Handling a SINGLE comments]...")
+def handle_one_comment(comment, timestamp, debug=False):
+	global time_at_launch_gmt
+
+	if (debug): print("...[Handling a SINGLE comments]...")
 
 	# TODO: need to check if comment exists and if it needs updating.
 	sub_sql_columns = []
@@ -91,6 +96,12 @@ def handle_one_comment(comment, debug=True):
 
 	# outer level details of a comment object
 	comment_id = comment['id']
+
+	# child comments come with the parent id
+	if (comment_id.find('.') != -1):
+		(parent,child) = comment_id.split('.')
+		comment_id = child
+
 	sub_sql_columns.append('yt_id')
 	sub_sql_values.append(comment_id)
 
@@ -116,9 +127,10 @@ def handle_one_comment(comment, debug=True):
 		except Exception as e:
 			if (debug): print(f"*** Failed on {sub_key}.\n{e}\n")
 
-	
+	sub_sql_columns.append("last_update")
+	sub_sql_values.append(timestamp)
 	if (db_ops.db_insert_row("yt_comments", sub_sql_columns, sub_sql_values, timestamp=False)):
-		print("!!! DONE with handle_comments")
+		if (debug): print("!!! DONE with handle_comments")
 		return
 	else:
 		print("*** comment insert failed:")
@@ -130,7 +142,7 @@ def handle_one_comment(comment, debug=True):
 	# print(f"Comment: {comment['snippet']['textDisplay']}")
 	
 
-def prep_comment_for_db(item, debug=True):
+def prep_comment_for_db(item, timestamp, debug=False):
 	sql_columns = []
 	sql_values = []
 
@@ -164,7 +176,7 @@ def prep_comment_for_db(item, debug=True):
 		if isinstance(item['snippet'][snippet_key], dict):
 			# handling topLevelComment (not sure if this shows up in replies)
 			if (debug): print(f"+ Got dict: {snippet_key}")
-			handle_one_comment(item['snippet']['topLevelComment'])
+			handle_one_comment(item['snippet']['topLevelComment'], timestamp)
 		else:
 			yt_snippet_key = snippet_key # probably not needed, but I did it before, I guess
 			db_column = commentThread_mapping['snippet'][snippet_key]
@@ -180,6 +192,9 @@ def prep_comment_for_db(item, debug=True):
 	# TODO: Need to add timestamp
 	# TODO: check to see if thread already exists and needs an update
 
+	sql_columns.append('last_update')
+	sql_values.append(timestamp)
+
 	if (db_ops.db_insert_row("yt_commentThreads", sql_columns, sql_values, timestamp=False) == False):
 		print("!!! insert into yt_commentThreads failed")
 		print("\t===")
@@ -189,21 +204,24 @@ def prep_comment_for_db(item, debug=True):
 		print("\t===")
 
 	#! Step Number Three
-	if (debug): print("\n+ Gathering commentThread_mapping")
-	try:
-		# does this response contain replies?
-		if (isinstance(item['replies'], dict)):
-			handle_comments(item['replies']['comments'])
-			print("-")
-	except Exception as e:		
-		print("!!! Failed to find replies obj")
-		print(e)
-		return False
+	if (replycount > 0):
+		if (debug): print("\n+ Gathering commentThread_mapping")
+		try:
+			# does this response contain replies?
+			if (isinstance(item['replies'], dict)):
+				handle_comments(item['replies']['comments'], timestamp)
+		except Exception as e:		
+			print("!!! Failed to find replies obj")
+			print(f"replycount: {replycount}")
+			print(e)
+			return False
+	else:
+		if (debug): print("\n+ No replies to this comment")
 
 	if (debug): print("+ DONE with topLevelComments\n-----------------\n\n")
 	return True
 
-def video_comments(video_id, last_date_check_utc, verbose=verbose):
+def video_comments(video_id, timestamp, verbose=verbose):
 	global video_id_with_new
 	global video_id_counter
 
@@ -237,12 +255,12 @@ def video_comments(video_id, last_date_check_utc, verbose=verbose):
 			if (db_ops.does_topLevelComment_exist(comment_id)):
 				# it exists so we need to see if it has been updated
 				print(f"+ For video [{video_id}], found [{comment_id}] in db ADDING IT ANYWAY")
-				if(prep_comment_for_db(item) == False):
+				if(prep_comment_for_db(item, timestamp) == False):
 					print(f"!!! db insert fail for [{comment_id}]")
 			else:
 				print(f"+ For video [{video_id}], [{comment_id}] is new, attempting add")
 				# this is a new comment, need to add to db
-				if(prep_comment_for_db(item) == False):
+				if(prep_comment_for_db(item, timestamp) == False):
 					print(f"!!! db insert fail for [{comment_id}]")
 
 		# Again repeat
@@ -261,15 +279,21 @@ def video_comments(video_id, last_date_check_utc, verbose=verbose):
 def main():
 	#print(f"Did you mean to run {path.basename(__file__)} standalone?")
 	global video_id
+	
 	# todo disable this stuff for later.
 
 	if (db_ops.create_connection() == False): exit()
 
+	# for testing, use these values
+	from datetime import datetime
+	from pytz import timezone,utc
+	time_at_launch = datetime.strftime(datetime.now(),"%Y-%m-%d %H:%M:%S") # used later, get the time asap
+	time_at_launch_gmt = utc.localize(datetime.strptime(time_at_launch, "%Y-%m-%d %H:%M:%S")) # adds +00:00
+
 	# todo replace with actual string
 	video_ids = video_id
-	#video_comments(video_id,"gmt string",verbose=True)
 	for video_id in video_ids.split(","):
-		video_comments(video_id,"gmt string",verbose=True)
+		video_comments(video_id, time_at_launch_gmt, verbose=True)
 
 	exit()
 
