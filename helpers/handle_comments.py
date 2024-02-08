@@ -99,53 +99,56 @@ def handle_one_comment(comment, timestamp, debug=False):
 
 	# outer level details of a comment object
 	comment_id = comment['id']
-
 	# child comments come with the parent id
 	if (comment_id.find('.') != -1):
 		(parent,child) = comment_id.split('.')
 		comment_id = child
 
-	sub_sql_columns.append('yt_id')
-	sub_sql_values.append(comment_id)
+	# does comment exist?
+	if (db_ops.does_comment_exist(comment_id, True) == False):
+		# let's go through the effort of adding!
+		sub_sql_columns.append('yt_id')
+		sub_sql_values.append(comment_id)
 
-	comment_etag = comment['etag']
-	sub_sql_columns.append('yt_etag')
-	sub_sql_values.append(comment_etag)
+		comment_etag = comment['etag']
+		sub_sql_columns.append('yt_etag')
+		sub_sql_values.append(comment_etag)
 
-	# handle snippet object of comment
-	for sub_key in comment_mapping['snippet']:
-		try:
-			if (debug): print(f"Processing {sub_key}")
-			if (sub_key == 'authorChannelId'):
-				db_column = comment_mapping['snippet']['authorChannelId']
-				db_value = comment['snippet']['authorChannelId']['value']
-			else:
-				db_column = comment_mapping['snippet'][sub_key]
-				db_value = comment['snippet'][sub_key]
-			if (debug): print("   ---")
-			if (debug): print(f"   column: {db_column}")
-			sub_sql_columns.append(db_column)
-			if (debug): print(f"   value:  {db_value}")
-			sub_sql_values.append(db_value)						
-		except Exception as e:
-			if (debug): print(f"*** Failed on {sub_key}.\n{e}\n")
+		# handle snippet object of comment
+		for sub_key in comment_mapping['snippet']:
+			try:
+				if (debug): print(f"Processing {sub_key}")
+				if (sub_key == 'authorChannelId'):
+					db_column = comment_mapping['snippet']['authorChannelId']
+					db_value = comment['snippet']['authorChannelId']['value']
+				else:
+					db_column = comment_mapping['snippet'][sub_key]
+					db_value = comment['snippet'][sub_key]
+				if (debug): print("   ---")
+				if (debug): print(f"   column: {db_column}")
+				sub_sql_columns.append(db_column)
+				if (debug): print(f"   value:  {db_value}")
+				sub_sql_values.append(db_value)						
+			except Exception as e:
+				if (debug): print(f"*** Failed on {sub_key}.\n{e}\n")
 
-	sub_sql_columns.append("last_update")
-	sub_sql_values.append(timestamp)
-	if (db_ops.db_insert_row("yt_comments", sub_sql_columns, sub_sql_values, timestamp=False)):
-		if (debug): print("!!! DONE with handle_comments")
-		return
+		sub_sql_columns.append("last_update")
+		sub_sql_values.append(timestamp)
+		if (db_ops.db_insert_row("yt_comments", sub_sql_columns, sub_sql_values, timestamp=False)):
+			if (debug): print("!!! DONE with handle_comments")
+			return
+		else:
+			print("*** comment insert failed:")
+			if (debug): print(f"\tsql_columns: {sub_sql_columns}")
+			if (debug): print(f"\tsql_values: {sub_sql_values}")
 	else:
-		print("*** comment insert failed:")
-		if (debug): print(f"\tsql_columns: {sub_sql_columns}")
-		if (debug): print(f"\tsql_values: {sub_sql_values}")
-	# print(f"         id: {comment_id}")
-	# print(f"   parentId: {comment['snippet']['parentId']}")
-	# print(f"DisplayName: {comment['snippet']['authorDisplayName']}")
-	# print(f"Comment: {comment['snippet']['textDisplay']}")
-	
+		# comment does exist, so what do we update?
+		# TODO: You're at the point of updating existing comments! Gotta figure that out
+		print("!!! TBD: need to update the comment")
 
-def update_topLevelComment(item, timestamp):
+
+
+def update_topLevelComment(item, timestamp, debug=False):
 	# update the top Level table and then go find new replies
 	commentThread_id = item['id']
 	etag_id = item['etag']
@@ -160,7 +163,23 @@ def update_topLevelComment(item, timestamp):
 		print("!!! Failed to update replycount")
 		return False
 
+	handle_replies(item, timestamp, debug)
 	return True
+
+def handle_replies(item, timestamp, debug=False):
+	if (item['snippet']['totalReplyCount'] > 0):
+		if (debug): print("\n+ Gathering commentThread_mapping")
+		try:
+			# does this response contain replies?
+			if (isinstance(item['replies'], dict)):
+				handle_comments(item['replies']['comments'], timestamp)
+		except Exception as e:		
+			print("!!! Failed to find replies obj")
+			print(f"replycount: {replycount}")
+			print(e)
+			return False
+	else:
+		if (debug): print("\n+ No replies to this comment")
 
 
 def prep_comment_for_db(item, timestamp, debug=False):
@@ -224,19 +243,7 @@ def prep_comment_for_db(item, timestamp, debug=False):
 		print("\t===")
 
 	#! Step Number Three
-	if (replycount > 0):
-		if (debug): print("\n+ Gathering commentThread_mapping")
-		try:
-			# does this response contain replies?
-			if (isinstance(item['replies'], dict)):
-				handle_comments(item['replies']['comments'], timestamp)
-		except Exception as e:		
-			print("!!! Failed to find replies obj")
-			print(f"replycount: {replycount}")
-			print(e)
-			return False
-	else:
-		if (debug): print("\n+ No replies to this comment")
+	handle_replies(item, timestamp, debug)
 
 	if (debug): print("+ DONE with topLevelComments\n-----------------\n\n")
 	return True

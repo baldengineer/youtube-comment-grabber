@@ -97,6 +97,23 @@ def build_update_list(cols):
 	col_list = "=?,".join(cols) +"=?"
 	return (col_list)
 
+def does_comment_exist(comment_id, debug=False):
+	sql = f"SELECT count(yt_id) FROM yt_comments WHERE yt_id='{comment_id}'"
+	match_count = db_get_single_element(sql)
+	if (match_count.isnumeric()):
+		if (int(match_count) > 0):
+			if (debug): print(f"{comment_id} matched {match_count} rows")
+			return True
+		else:
+			if (debug): print(f"{comment_id} matched 0 rows")
+			return False
+	else:
+		print(f"ERROR: [does_comment_exist]: {comment_id} wasn't numeric, returning False")	
+		return False
+
+	# uh oh, this shouldn't happen
+	return False
+
 def does_topLevelComment_exist(topLevelCommentId, debug=False):
 	sql = f"SELECT count(yt_id) FROM yt_commentThreads WHERE yt_id='{topLevelCommentId}'"
 	match_count = db_get_single_element(sql)
