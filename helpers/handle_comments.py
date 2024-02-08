@@ -8,8 +8,8 @@ yt_api_key = getenv('YT_API_KEY')
 db_verbose = True
 
 # temp video id(s)
-video_id = 'UHwyHcvvem0'
-#video_id = 'UHwyHcvvem0,WQi8g1EBGIw'
+#video_id = 'UHwyHcvvem0'
+video_id = 'UHwyHcvvem0,WQi8g1EBGIw'
 #video_id = 'UHwyHcvvem0,WQi8g1EBGIw,b6jih4osvxQ,JjY1lnMauVc,dbGohcv6uxo,bqdyve-hhZY'
 
 # todo: remove this before deploy
@@ -80,6 +80,50 @@ def handle_mixed_vals(val):
 
 # dude, you already pull the comments in the main py. 
 # why you re-writing it silly?
+
+def handle_replies(item, debug=True):
+	print("Processing replies[comments] object")
+	replies = item['replies']
+	comments = replies['comments']
+	# TODO: need to check if comment exists and if it needs updating.
+	for comment in comments:
+		comment_id = comment['id']
+		comment_etag = comment['etag']
+		sub_sql_columns = []
+		sub_sql_values = []
+		
+		sub_sql_columns.append('yt_id')
+		sub_sql_values.append(comment_id)
+
+		sub_sql_columns.append('yt_etag')
+		sub_sql_values.append(comment_etag)
+
+		for sub_key in comment_mapping['snippet']:
+			try:
+				if (debug): print(f"Processing {sub_key}")
+				if (sub_key == 'authorChannelId'):
+					db_column = comment_mapping['snippet']['authorChannelId']
+					db_value = comment['snippet']['authorChannelId']['value']
+				else:
+					db_column = comment_mapping['snippet'][sub_key]
+					db_value = comment['snippet'][sub_key]
+
+				if (debug): print("---")
+				if (debug): print(f"column: {db_column}")
+				sub_sql_columns.append(db_column)
+				if (debug): print(f"value:  {db_value}")
+				sub_sql_values.append(db_value)						
+
+			except Exception as e:
+				if (debug): print(f"*** Failed on {sub_key}.\n{e}\n")
+		if (debug): print(f"sql_columns: {sub_sql_columns}")
+		if (debug): print(f"sql_values: {sub_sql_values}")
+		db_ops.db_insert_row("yt_comments", sub_sql_columns, sub_sql_values, timestamp=False)
+		# print(f"         id: {comment_id}")
+		# print(f"   parentId: {comment['snippet']['parentId']}")
+		# print(f"DisplayName: {comment['snippet']['authorDisplayName']}")
+		# print(f"Comment: {comment['snippet']['textDisplay']}")
+
 def prep_comment_for_db(item, debug=True):
 	sql_columns = []
 	sql_values = []
@@ -92,12 +136,25 @@ def prep_comment_for_db(item, debug=True):
 	sql_columns.append("yt_snippet_topLevelComment_id")
 	sql_values.append(comment_id)
 
+	# handle the snippet of commentThread
+	if (debug): print("\nGathering snippet information")
+	for snippet_key in item['snippet']:
+		print(f"{snippet_key}: {item['snippet'][snippet_key]}")
+		yt_snippet_key = snippet_key # probably not needed, but I did it before, I guess
+		db_column = commentThread_mapping['snippet'][snippet_key]
+		db_value = item['snippet'][snippet_key]
+		if (debug): print(f"column: {db_column}")
+		sql_columns.append(db_column)
+		if (debug): print(f"value:  {db_value}")
+		sql_values.append(db_value)
+
+	if (debug): print("\nGathering commentThread_mapping")
 	for obj_key in commentThread_mapping.keys():
 		# if the obj_key is a str, then it is "top level" in the json structure
 		if (isinstance(commentThread_mapping[obj_key], str)):
 			# top level key like thread
 			try:
-				yt_resp_key = obj_key
+				yt_resp_key = obj_key # why is this here? am I using it?
 				db_column = commentThread_mapping[obj_key]
 				db_value = item[obj_key]
 				if (debug): print("---")
@@ -110,48 +167,8 @@ def prep_comment_for_db(item, debug=True):
 		# if it is a dict, then it contains other objs, like snippet and replies
 		elif (isinstance(commentThread_mapping[obj_key], dict)):
 			if (debug): print(f"trying: [{obj_key}]")
-			if (obj_key == "replies"): 
-				print("Processing replies[comments] object")
-				replies = item['replies']
-				comments = replies['comments']
-				# TODO: need to check if comment exists and if it needs updating.
-				for comment in comments:
-					comment_id = comment['id']
-					comment_etag = comment['etag']
-					sub_sql_columns = []
-					sub_sql_values = []
-					
-					sub_sql_columns.append('yt_id')
-					sub_sql_values.append(comment_id)
-
-					sub_sql_columns.append('yt_etag')
-					sub_sql_values.append(comment_etag)
-
-					for sub_key in comment_mapping['snippet']:
-						try:
-							if (debug): print(f"Processing {sub_key}")
-							if (sub_key == 'authorChannelId'):
-								db_column = comment_mapping['snippet']['authorChannelId']
-								db_value = comment['snippet']['authorChannelId']['value']
-							else:
-								db_column = comment_mapping['snippet'][sub_key]
-								db_value = comment['snippet'][sub_key]
-
-							if (debug): print("---")
-							if (debug): print(f"column: {db_column}")
-							sub_sql_columns.append(db_column)
-							if (debug): print(f"value:  {db_value}")
-							sub_sql_values.append(db_value)						
-
-						except Exception as e:
-							if (debug): print(f"*** Failed on {sub_key}.\n{e}\n")
-					if (debug): print(f"sql_columns: {sub_sql_columns}")
-					if (debug): print(f"sql_values: {sub_sql_values}")
-					db_ops.db_insert_row("yt_comments", sub_sql_columns, sub_sql_values, timestamp=False)
-					# print(f"         id: {comment_id}")
-					# print(f"   parentId: {comment['snippet']['parentId']}")
-					# print(f"DisplayName: {comment['snippet']['authorDisplayName']}")
-					# print(f"Comment: {comment['snippet']['textDisplay']}")
+			if (obj_key == "replies"):  # may need to add item['kind'] to see if youtube#commentThread or replies?
+				handle_replies(item)
 
 				print("-")
 # {'kind': 'youtube#comment',
