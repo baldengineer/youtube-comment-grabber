@@ -82,9 +82,9 @@ def handle_mixed_vals(val):
 # dude, you already pull the comments in the main py. 
 # why you re-writing it silly?
 
-def handle_replies(item, debug=True):
-	print("Processing replies[comments] object")
-	replies = item['replies']
+def handle_comments(replies, debug=True):
+	print("Handling comments")
+#	replies = item['replies']
 	comments = replies['comments']
 	# TODO: need to check if comment exists and if it needs updating.
 	for comment in comments:
@@ -144,11 +144,10 @@ def prep_comment_for_db(item, debug=True):
 	if (debug): print(f"etag_id = [{etag_id}]")
 	sql_columns.append("yt_etag")
 	sql_values.append(etag_id)
-	# may not need the comment id, I think it's a hold over from
-	# a previous bad idea
+	# I think this will link the top level comment to the comment id in the comments table
 	if (debug): print(f"topLevelComment_id = [{topLevelComment_id}]")
-	#sql_columns.append("yt_snippet_topLevelComment")
-	#sql_values.append(topLevelComment_id)
+	sql_columns.append("yt_snippet_topLevelComment")
+	sql_values.append(topLevelComment_id)
 	#
 	if (debug): print(f"replycount = [{replycount}]")
 	
@@ -156,17 +155,21 @@ def prep_comment_for_db(item, debug=True):
 	# prep the snippet section
 	if (debug): print("\nGathering snippet information")
 	for snippet_key in item['snippet']:
-		print(f"{snippet_key}: {item['snippet'][snippet_key]}")
-		yt_snippet_key = snippet_key # probably not needed, but I did it before, I guess
-		db_column = commentThread_mapping['snippet'][snippet_key]
-		if (snippet_key.lower() == 'totalreplycount'):
-			db_value = int(item['snippet'][snippet_key])
+		if (debug): print(f"{snippet_key}: {item['snippet'][snippet_key]}")
+		if isinstance(item['snippet'][snippet_key], dict):
+			# handling topLevelComment (not sure if this shows up in replies)
+			if (debug): print(f"Got dict: {snippet_key}")
 		else:
-			db_value = item['snippet'][snippet_key]
-		if (debug): print(f"column: {db_column}")
-		sql_columns.append(db_column)
-		if (debug): print(f"value:  {db_value}")
-		sql_values.append(db_value)
+			yt_snippet_key = snippet_key # probably not needed, but I did it before, I guess
+			db_column = commentThread_mapping['snippet'][snippet_key]
+			if (snippet_key.lower() == 'totalreplycount'):
+				db_value = int(item['snippet'][snippet_key])
+			else:
+				db_value = item['snippet'][snippet_key]
+			if (debug): print(f"column: {db_column}")
+			sql_columns.append(db_column)
+			if (debug): print(f"value:  {db_value}")
+			sql_values.append(db_value)
 
 # TODO ARGH, commentThread contains topLevelComment, not just the id! It's a whole comment!
 
@@ -206,7 +209,7 @@ def prep_comment_for_db(item, debug=True):
 		elif (isinstance(commentThread_mapping[obj_key], dict)):
 			if (debug): print(f"trying: [{obj_key}]")
 			if (obj_key == "replies"):  # may need to add item['kind'] to see if youtube#commentThread or replies?
-				handle_replies(item)
+				handle_comments(item['replies'])
 
 				print("-")
 # {'kind': 'youtube#comment',
