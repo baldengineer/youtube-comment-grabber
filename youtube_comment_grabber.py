@@ -179,28 +179,15 @@ def print_id_with_urL(video_ids):
 
 def main():
 	global youtube
-	global video_id_with_new
-	global video_id_errors
-	last_date_check_utc = None
 	
 	# bail if we can't open the db
 	if (db_ops.create_connection() == False): exit()
 
-	# update video descriptions. 
-	# TODO: Need to check if comments changed!
+	# update video descriptions in yt_videos
 	handle_video_descriptions.update_video_descriptions(time_at_launch_gmt)
 
-	#! Date Check
-	last_date_check = datetime.strptime(db_ops.get_last_comment_check(), "%Y-%m-%d %H:%M:%S") # in America/Chicago timezone
-	last_date_check_utc = local_timezone.localize(last_date_check).astimezone(utc)
-	print(f"Checking for comments since {last_date_check.strftime('%Y-%m-%d %H:%M:%S')}")
-	if (no_last_update):
-		print(f"Not updating last check date")
-	else:
-		print(f"Updating last check date to {time_at_launch}. Use -noup to skip this.")
-		# just in case we miss a comment by a second
-		db_ops.set_last_comment_check(time_at_launch)
-
+	# TODO: Need to check if comments changed!
+	# get video_ids for updating comments
 	video_ids = db_ops.db_get_video_ids(True)
 	if (len(video_ids) > 0):
 		with Progress() as progress:
@@ -222,18 +209,6 @@ def main():
 						exit()
 				progress.advance(task)
 
-	if (len(video_id_with_new) > 0):
-		print("\n------------------------------------")
-		print("Videos with new comments or replies:")
-		print_id_with_urL(video_id_with_new)
-		print("\n")
-
-	if (len(video_id_errors) > 0):
-		print("\n----------------")
-		print("ERROR WITH THESE:")
-		print_id_with_urL(video_id_errors)
-		print("\n")
-
 if __name__ == '__main__':
 	main()
 
@@ -241,8 +216,9 @@ if __name__ == '__main__':
 
 # Originally based this example:
 # https://www.geeksforgeeks.org/how-to-extract-youtube-comments-using-youtube-api-python/
+## although, I think only one API call is still from that example. (but check it out as a starting point)
 
-# Copyright (c) 2023 James Lewis (@baldengineer)
+# Copyright (c) 2023-2024 James Lewis (@baldengineer)
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
