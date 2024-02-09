@@ -106,13 +106,13 @@ def main():
 			task = progress.add_task("Checking for comments", total=len(video_ids))
 			for video_id in video_ids:
 				# give pretty update status
-				db_video_title = handle_video_descriptions.get_video_title_db(video_id)
+				db_video_title = handle_video_descriptions.get_video_title_db(video_id)F
 				progress.console.print(f"\[{str(video_id)}]: {str(db_video_title)}", highlight=False)
 				
 				# reset the youtube object
 				youtube = ""
 				try:
-					handle_comments.video_comments(video_id, time_at_launch_gmt)
+					handle_comments.video_comments(video_id, time_at_launch_gmt, debug=False)
 				except Exception:
 					traceback.print_exc()
 					video_id_errors.append(video_id)

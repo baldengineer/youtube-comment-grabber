@@ -142,12 +142,9 @@ def handle_one_comment(comment, timestamp, debug=False):
 			if (debug): print(f"\tsql_columns: {sub_sql_columns}")
 			if (debug): print(f"\tsql_values: {sub_sql_values}")
 	else:
-		# comment does exist, so what do we update?
-		# TODO: You're at the point of updating existing comments! Gotta figure that out
-		# ! Should archive the old comment and add this one instead?
-		
+		# comment does exist, so what do we update
 		# TODO: Update like count
-		
+
 		# 1. get the last updatedAt date in our database table
 		db_id = db_ops.get_latest_comment_db_id(comment_id)
 		db_yt_updatedAt = db_ops.get_yt_comment_updatedAt(db_id)
@@ -157,16 +154,10 @@ def handle_one_comment(comment, timestamp, debug=False):
 		if (db_yt_updatedAt != json_yt_updatedAt):
 			# 3. if different then deactivate old comment and add new one
 			db_ops.set_comment_active(db_id, False, timestamp)
-			
 			# 4. update whatever else
 			print("!!! TBD: need to update the comment")
 			handle_one_comment(comment, timestamp, debug=True) # recurison should be okay... right?
-			
-
-
-		# else:
-		# 	print(f"No update needed for {comment_id}")
-		
+	return # handle_one_comment()
 
 
 
@@ -302,7 +293,7 @@ def video_comments(video_id, timestamp, debug=False):
 			# is the id in our database?
 			if (db_ops.does_topLevelComment_exist(comment_id)):
 				# it exists so we need to see if it has been updated
-				print(f"\n+ For video [{video_id}], found [{comment_id}] aready EXISTS in db")
+				if (debug): print(f"\n+ For video [{video_id}], found [{comment_id}] aready EXISTS in db")
 				db_replyCount = db_ops.get_replyCount(comment_id)
 				if (replycount != db_replyCount):
 					if (update_topLevelComment(item, timestamp) == False):
