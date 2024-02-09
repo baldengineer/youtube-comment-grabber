@@ -2,7 +2,7 @@ from googleapiclient.discovery import build
 from os import path
 import json
 
-text_file_with_ids = path.join("data","video_ids.txt")
+
 
 #! youtube video id details:
 # Exactly 11 characters
@@ -10,7 +10,7 @@ text_file_with_ids = path.join("data","video_ids.txt")
 # Remember, it can start with a - or _, so test those
 
 ##########################################
-def load_video_ids(verbose=False):
+def load_video_ids(text_file_with_ids, verbose=False):
 	video_ids = []
 	try:
 		with open(text_file_with_ids, 'r') as file:
@@ -39,6 +39,12 @@ def load_video_ids(verbose=False):
 	print(f"Loaded {len(video_ids)} ids, first id is: {video_ids[0]}")
 	# TODO: Need to make this a command line option
 	video_ids.reverse()
+
+	# sql stuff
+	for id in video_ids:
+		#sql = f"INSERT INTO yt_videos (yt_id) VALS ('{id}')"
+		if (db_ops.db_insert_row('yt_videos',['yt_id','active_update'],[id,1],False) ==  False):
+			exit()
 	return video_ids
 
 ##########################################
@@ -59,3 +65,4 @@ def main():
 if __name__ == '__main__':
 	main()
 
+from . import db_ops

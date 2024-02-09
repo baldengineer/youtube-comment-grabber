@@ -93,6 +93,14 @@ def main():
 	# bail if we can't open the db
 	if (db_ops.create_connection() == False): exit()
 
+	#####
+	# super lame way to load the yt_video with ids
+	###
+	# text_file_with_ids = os.path.join("data","video_ids.full")
+	# handle_video_ids.load_video_ids(text_file_with_ids)
+
+	# exit()
+
 	# update video descriptions in yt_videos
 	handle_video_descriptions.update_video_descriptions(time_at_launch_gmt)
 
@@ -106,7 +114,7 @@ def main():
 			task = progress.add_task("Checking for comments", total=len(video_ids))
 			for video_id in video_ids:
 				# give pretty update status
-				db_video_title = handle_video_descriptions.get_video_title_db(video_id)F
+				db_video_title = handle_video_descriptions.get_video_title_db(video_id)
 				progress.console.print(f"\[{str(video_id)}]: {str(db_video_title)}", highlight=False)
 				
 				# reset the youtube object

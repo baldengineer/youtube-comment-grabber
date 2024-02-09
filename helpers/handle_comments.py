@@ -19,7 +19,7 @@ video_id = 'UHwyHcvvem0'
 #video_id = 'UHwyHcvvem0,WQi8g1EBGIw,b6jih4osvxQ,JjY1lnMauVc,dbGohcv6uxo,bqdyve-hhZY,gFCD4s_hsb4'
 
 # todo: remove this before deploy
-verbose = True
+verbose = False
 
 # https://developers.google.com/youtube/v3/docs/commentThreads
 
@@ -305,7 +305,7 @@ def video_comments(video_id, timestamp, debug=False):
 					handle_replies(item, timestamp, debug)
 
 			else:
-				print(f"+ For video [{video_id}], [{comment_id}] is new, attempting ADD")
+				if (debug): print(f"+ For video [{video_id}], [{comment_id}] is new, attempting ADD")
 				# this is a new comment, need to add to db
 				if(prep_comment_for_db(item, timestamp) == False):
 					print(f"!!! db insert fail for [{comment_id}]")
@@ -340,7 +340,7 @@ def main():
 	# todo replace with actual string
 	video_ids = video_id
 	for video_id in video_ids.split(","):
-		video_comments(video_id, time_at_launch_gmt, debug=True)
+		video_comments(video_id, time_at_launch_gmt, debug=False)
 
 	exit()
 

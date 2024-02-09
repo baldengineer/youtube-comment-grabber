@@ -28,7 +28,7 @@ def create_connection(db_file=db_file):
 	
 def db_get_video_ids(acitve_only=True):
 	if (acitve_only):
-		sql = "SELECT yt_id FROM yt_videos WHERE active_update='True'"
+		sql = "SELECT yt_id FROM yt_videos WHERE active_update=1"
 	else:
 		sql = "SELECT yt_id FROM yt_videos"
 	curr = db_conn.cursor()
@@ -193,6 +193,7 @@ def get_yt_comment_updatedAt(id):
 
 def db_insert_row(table, cols, vals, timestamp=True):
 	if (timestamp):
+		print("db_insert_row still has wrong timestamp method")
 		cols.append('last_update')
 		vals.append(datetime.datetime.now())
 	(col_list,parameter_list) = build_insert_list(cols)
