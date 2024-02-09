@@ -105,7 +105,7 @@ def handle_one_comment(comment, timestamp, debug=False):
 		comment_id = child
 
 	# does comment exist?
-	if (db_ops.does_comment_exist(comment_id, True) == False):
+	if (db_ops.does_comment_exist(comment_id, active=True, debug=False) == False):
 		# let's go through the effort of adding!
 		sub_sql_columns.append('yt_id')
 		sub_sql_values.append(comment_id)
@@ -144,7 +144,27 @@ def handle_one_comment(comment, timestamp, debug=False):
 	else:
 		# comment does exist, so what do we update?
 		# TODO: You're at the point of updating existing comments! Gotta figure that out
-		print("!!! TBD: need to update the comment")
+		# ! Should archive the old comment and add this one instead?
+		
+		# TODO: Update like count
+		
+		# 1. get the last updatedAt date in our database table
+		db_id = db_ops.get_latest_comment_db_id(comment_id)
+		db_yt_updatedAt = db_ops.get_yt_comment_updatedAt(db_id)
+		json_yt_updatedAt = comment['snippet']['updatedAt']
+		#print(f"comment: [{comment_id}] last updated on yt: [{db_yt_updatedAt}], current value is: [{json_yt_updatedAt}]")
+		# 2. compare to value in json
+		if (db_yt_updatedAt != json_yt_updatedAt):
+			db_ops.set_comment_active(db_id, False, timestamp)
+			# 3. if different then deactivate old comment and add new one
+			
+			# 4. update whatever else
+			print("!!! TBD: need to update the comment")
+
+
+		# else:
+		# 	print(f"No update needed for {comment_id}")
+		
 
 
 
@@ -168,18 +188,17 @@ def update_topLevelComment(item, timestamp, debug=False):
 
 def handle_replies(item, timestamp, debug=False):
 	if (item['snippet']['totalReplyCount'] > 0):
-		if (debug): print("\n+ Gathering commentThread_mapping")
+		if (debug): print("+ Gathering commentThread_mapping")
 		try:
 			# does this response contain replies?
 			if (isinstance(item['replies'], dict)):
 				handle_comments(item['replies']['comments'], timestamp)
 		except Exception as e:		
-			print("!!! Failed to find replies obj")
-			print(f"replycount: {replycount}")
-			print(e)
+			if (debug): print("!!! Failed to find replies obj")
+			if (debug): print(e)
 			return False
 	else:
-		if (debug): print("\n+ No replies to this comment")
+		if (debug): print("+ No replies to this comment")
 
 
 def prep_comment_for_db(item, timestamp, debug=False):
@@ -248,7 +267,7 @@ def prep_comment_for_db(item, timestamp, debug=False):
 	if (debug): print("+ DONE with topLevelComments\n-----------------\n\n")
 	return True
 
-def video_comments(video_id, timestamp, verbose=verbose):
+def video_comments(video_id, timestamp, debug=False):
 	global video_id_with_new
 	global video_id_counter
 
@@ -281,13 +300,16 @@ def video_comments(video_id, timestamp, verbose=verbose):
 			# is the id in our database?
 			if (db_ops.does_topLevelComment_exist(comment_id)):
 				# it exists so we need to see if it has been updated
-				print(f"+ For video [{video_id}], found [{comment_id}] aready EXISTS in db")
+				print(f"\n+ For video [{video_id}], found [{comment_id}] aready EXISTS in db")
 				db_replyCount = db_ops.get_replyCount(comment_id)
-				if (replycount == db_replyCount):
-					print(f"+ Reply counts are the same, skipping")
-				else:
+				if (replycount != db_replyCount):
 					if (update_topLevelComment(item, timestamp) == False):
+						# update the reply count in the topLevelComment table
+						# and process replies
 						printf(f"!!! update failed for [{comment_id}]")
+				else:
+					# just process replies (looking for comments that changed)
+					handle_replies(item, timestamp, debug)
 
 			else:
 				print(f"+ For video [{video_id}], [{comment_id}] is new, attempting ADD")
@@ -325,7 +347,7 @@ def main():
 	# todo replace with actual string
 	video_ids = video_id
 	for video_id in video_ids.split(","):
-		video_comments(video_id, time_at_launch_gmt, verbose=True)
+		video_comments(video_id, time_at_launch_gmt, debug=True)
 
 	exit()
 

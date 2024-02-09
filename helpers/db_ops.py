@@ -97,8 +97,8 @@ def build_update_list(cols):
 	col_list = "=?,".join(cols) +"=?"
 	return (col_list)
 
-def does_comment_exist(comment_id, debug=False):
-	sql = f"SELECT count(yt_id) FROM yt_comments WHERE yt_id='{comment_id}'"
+def does_comment_exist(comment_id, active=True, debug=False):
+	sql = f"SELECT count(yt_id) FROM yt_comments WHERE yt_id='{comment_id}' and active={int(active)}"
 	match_count = db_get_single_element(sql)
 	if (match_count.isnumeric()):
 		if (int(match_count) > 0):
@@ -158,6 +158,38 @@ def db_update_row(table, id_col, id_val, cols, vals, timestamp="True"):
 	curr = db_conn.cursor()
 	curr.execute(sql, vals)
 	db_conn.commit()
+
+def set_comment_active(db_id, active, timestamp):
+	#not_active = not active
+	#sql = f"update yt_comments SET active='{str(active)}' where id={db_id}"
+	try:
+		db_update_row('yt_comments','id',db_id,['active'],[int(active)],timestamp)
+	except Exception as e:
+		print(f"set_comment_active failed on {db_id}")
+
+	## to do this, we need our own ID!
+
+def get_latest_comment_db_id(comment_id):
+	sql = f"SELECT max(id) from yt_comments WHERE yt_id='{comment_id}' and active=1"
+	try:
+		id = int(db_get_single_element(sql))
+	except:
+		print("[get_latest_comment_db_id failed]")
+		id = 0
+	return id
+
+# can take either our database_id or the youtube id. YT id requires more qualification
+def get_yt_comment_updatedAt(id):
+	if (isinstance(id,int)):
+		sql = f"SELECT yt_snippet_updatedAt FROM yt_comments WHERE id={id}"
+	else:
+		sql = f"SELECT yt_snippet_updatedAt FROM yt_comments WHERE yt_id='{id}' and active=1"
+	#print(sql)
+	date_string = db_get_single_element(sql)
+	if (isinstance(date_string,str)):
+		return date_string
+	else:
+		return ""
 
 def db_insert_row(table, cols, vals, timestamp=True):
 	if (timestamp):
