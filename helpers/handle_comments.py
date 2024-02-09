@@ -155,11 +155,13 @@ def handle_one_comment(comment, timestamp, debug=False):
 		#print(f"comment: [{comment_id}] last updated on yt: [{db_yt_updatedAt}], current value is: [{json_yt_updatedAt}]")
 		# 2. compare to value in json
 		if (db_yt_updatedAt != json_yt_updatedAt):
-			db_ops.set_comment_active(db_id, False, timestamp)
 			# 3. if different then deactivate old comment and add new one
+			db_ops.set_comment_active(db_id, False, timestamp)
 			
 			# 4. update whatever else
 			print("!!! TBD: need to update the comment")
+			handle_one_comment(comment, timestamp, debug=True) # recurison should be okay... right?
+			
 
 
 		# else:
