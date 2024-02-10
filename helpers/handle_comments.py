@@ -10,6 +10,10 @@ except:
 yt_api_key = getenv('YT_API_KEY')
 db_verbose = True
 
+# for progress display
+new_comment_count = 0
+update_comment_count = 0 
+
 # temp video id(s)
 video_id = 'UHwyHcvvem0'
 #video_id = 'UHwyHcvvem0,WQi8g1EBGIw'
@@ -90,6 +94,8 @@ def handle_comments(comments, timestamp, debug=False):
 
 def handle_one_comment(comment, timestamp, debug=False):
 	global time_at_launch_gmt
+	global new_comment_count
+	global update_comment_count
 
 	if (debug): print("...[Handling a SINGLE comments]...")
 
@@ -124,10 +130,7 @@ def handle_one_comment(comment, timestamp, debug=False):
 				else:
 					db_column = comment_mapping['snippet'][sub_key]
 					db_value = comment['snippet'][sub_key]
-				if (debug): print("   ---")
-				if (debug): print(f"   column: {db_column}")
 				sub_sql_columns.append(db_column)
-				if (debug): print(f"   value:  {db_value}")
 				sub_sql_values.append(db_value)						
 			except Exception as e:
 				if (debug): print(f"*** Failed on {sub_key}.\n{e}\n")
@@ -135,6 +138,7 @@ def handle_one_comment(comment, timestamp, debug=False):
 		sub_sql_columns.append("last_update")
 		sub_sql_values.append(timestamp)
 		if (db_ops.db_insert_row("yt_comments", sub_sql_columns, sub_sql_values, timestamp=False)):
+			new_comment_count = new_comment_count + 1
 			if (debug): print("!!! DONE with handle_comments")
 			return
 		else:
@@ -156,7 +160,9 @@ def handle_one_comment(comment, timestamp, debug=False):
 			db_ops.set_comment_active(db_id, False, timestamp)
 			# 4. update whatever else
 			print("!!! TBD: need to update the comment")
+			update_comment_count = update_comment_count + 1
 			handle_one_comment(comment, timestamp, debug=True) # recurison should be okay... right?
+			new_comment_count = new_comment_count - 1 # don't double dip!
 	return # handle_one_comment()
 
 
@@ -300,9 +306,9 @@ def video_comments(video_id, timestamp, debug=False):
 						# update the reply count in the topLevelComment table
 						# and process replies
 						printf(f"!!! update failed for [{comment_id}]")
-				else:
-					# just process replies (looking for comments that changed)
-					handle_replies(item, timestamp, debug)
+				# else:
+				# 	# just process replies (looking for comments that changed)
+				handle_replies(item, timestamp, debug)
 
 			else:
 				if (debug): print(f"+ For video [{video_id}], [{comment_id}] is new, attempting ADD")

@@ -8,7 +8,13 @@ from googleapiclient.discovery import build
 from datetime import datetime
 from pytz import timezone,utc
 from dotenv import load_dotenv
-from rich.progress import Progress
+from rich.progress import (
+	Progress,
+	TextColumn,
+	BarColumn,
+    TaskProgressColumn,
+    TimeRemainingColumn,
+)
 
 from helpers import handle_video_ids
 from helpers import handle_video_descriptions
@@ -27,6 +33,10 @@ time_at_launch_gmt = utc.localize(datetime.strptime(time_at_launch, "%Y-%m-%d %H
 
 verbose = False
 no_last_update = False
+
+
+# new_comment_count = 0 
+# update_comment_count = 0
 
 def print_cmdline_help():
 	print("This script supports these arguments:")
@@ -89,6 +99,8 @@ def print_id_with_urL(video_ids):
 
 def main():
 	global youtube
+	# global new_comment_count
+	# global update_comment_count
 	
 	# bail if we can't open the db
 	if (db_ops.create_connection() == False): exit()
@@ -104,19 +116,34 @@ def main():
 	# update video descriptions in yt_videos
 	handle_video_descriptions.update_video_descriptions(time_at_launch_gmt)
 
-	# TODO: Need to check if comments changed!
+	# print("early bail out.")
+	# exit()
+
 	# get video_ids for updating comments
-	video_ids = db_ops.db_get_video_ids(True)
+	video_ids = db_ops.db_get_video_ids(acitve_only=True)
 	video_id_errors = 0 # failsafe
 
+	progress = Progress(
+    	TextColumn("[progress.description]{task.description}"),
+    	BarColumn(),
+    	TaskProgressColumn(),
+		TextColumn("[yellow][{task.fields[new_comment_count]}/{task.fields[update_comment_count]}]"),
+    	TextColumn("[bold blue]{task.fields[vid]}"),
+	)
+
 	if (len(video_ids) > 0):
-		with Progress() as progress:
-			task = progress.add_task("Checking for comments", total=len(video_ids))
+		with progress:
+		#with Progress() as progress:
+			#vid = "..."
+			
+			task = progress.add_task("Checking for comments", new_comment_count=handle_comments.new_comment_count, update_comment_count=handle_comments.update_comment_count, vid="...", total=len(video_ids))
 			for video_id in video_ids:
 				# give pretty update status
 				db_video_title = handle_video_descriptions.get_video_title_db(video_id)
-				progress.console.print(f"\[{str(video_id)}]: {str(db_video_title)}", highlight=False)
-				
+				#progress.console.print(f"\[{str(video_id)}]: {str(db_video_title)}", highlight=False)
+				progress.update(task, vid=db_video_title)
+				progress.update(task, new_comment_count=handle_comments.new_comment_count)
+				progress.update(task, update_comment_count=handle_comments.update_comment_count)
 				# reset the youtube object
 				youtube = ""
 				try:
