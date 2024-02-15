@@ -138,6 +138,7 @@ def handle_one_comment(comment, timestamp, debug=False):
 		sub_sql_columns.append("last_update")
 		sub_sql_values.append(timestamp)
 		if (db_ops.db_insert_row("yt_comments", sub_sql_columns, sub_sql_values, timestamp=False)):
+			#print(f"\t\tnew comment count: {new_comment_count}")
 			new_comment_count = new_comment_count + 1
 			if (debug): print("!!! DONE with handle_comments")
 			return
@@ -230,8 +231,10 @@ def prep_comment_for_db(item, timestamp, debug=False):
 	if (debug): print("\n+ Gathering snippet information")
 	for snippet_key in item['snippet']:
 		if (debug): print(f"{snippet_key}: {item['snippet'][snippet_key]}")
+		
+		# loop through the yt response and match up to sql columns
 		if isinstance(item['snippet'][snippet_key], dict):
-			# handling topLevelComment (not sure if this shows up in replies)
+			# toplevelComment is a dict and contains a comment
 			if (debug): print(f"+ Got dict: {snippet_key}")
 			handle_one_comment(item['snippet']['topLevelComment'], timestamp)
 		else:
