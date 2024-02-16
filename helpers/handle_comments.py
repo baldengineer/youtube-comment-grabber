@@ -160,9 +160,9 @@ def handle_one_comment(comment, timestamp, debug=False):
 			# 3. if different then deactivate old comment and add new one
 			db_ops.set_comment_active(db_id, False, timestamp)
 			# 4. update whatever else
-			print("!!! TBD: need to update the comment")
+			#print("!!! TBD: need to update the comment")
 			update_comment_count = update_comment_count + 1
-			handle_one_comment(comment, timestamp, debug=True) # recurison should be okay... right?
+			handle_one_comment(comment, timestamp, debug=False) # recurison should be okay... right?
 			new_comment_count = new_comment_count - 1 # don't double dip!
 	return # handle_one_comment()
 
