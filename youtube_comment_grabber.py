@@ -156,6 +156,14 @@ def main():
 						exit()
 				progress.advance(task)
 
+		# let's print out the new things, I guess
+		new_comment_list = list(set(handle_comments.new_video_id_list))
+		#print(f"There are {len(new_comment_list)} new comment(s)")
+		update_comment_list = list(set(handle_comments.updated_video_id_list))
+		#print(f"There are {len(update_comment_list)} uploaded comment(s)")
+
+		# TODO: STORE THE COMMENTS THAT ARE NEW OR UPDATED, NOT THE VIDEO ID!
+
 if __name__ == '__main__':
 	main()
 

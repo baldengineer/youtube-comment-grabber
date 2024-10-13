@@ -13,6 +13,9 @@ db_verbose = True
 # for progress display
 new_comment_count = 0
 update_comment_count = 0 
+new_video_id_list = []
+updated_video_id_list = []
+
 
 # temp video id(s)
 video_id = 'UHwyHcvvem0'
@@ -140,6 +143,7 @@ def handle_one_comment(comment, timestamp, debug=False):
 		if (db_ops.db_insert_row("yt_comments", sub_sql_columns, sub_sql_values, timestamp=False)):
 			#print(f"\t\tnew comment count: {new_comment_count}")
 			new_comment_count = new_comment_count + 1
+			new_video_id_list.append(video_id)
 			if (debug): print("!!! DONE with handle_comments")
 			return
 		else:
@@ -162,6 +166,7 @@ def handle_one_comment(comment, timestamp, debug=False):
 			# 4. update whatever else
 			#print("!!! TBD: need to update the comment")
 			update_comment_count = update_comment_count + 1
+			updated_video_id_list.append(video_id)
 			handle_one_comment(comment, timestamp, debug=False) # recurison should be okay... right?
 			new_comment_count = new_comment_count - 1 # don't double dip!
 	return # handle_one_comment()
@@ -192,7 +197,7 @@ def handle_replies(item, timestamp, debug=False):
 		try:
 			# does this response contain replies?
 			if (isinstance(item['replies'], dict)):
-				handle_comments(item['replies']['comments'], timestamp)
+				handle_comments(item['replies']['comments'], replies_video_id_list, timestamp)
 		except Exception as e:		
 			if (debug): print("!!! Failed to find replies obj")
 			if (debug): print(e)
