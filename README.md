@@ -1,3 +1,6 @@
+# No Longer Actively Developing
+My need for this script went away, so I am no longer actively developing it. The main branch is functional (but minimal.) The database branch was getting there, but still has a number of issues.
+
 ![early screenshot](images/early_screenshot.png)
 # youtube-comment-grabber
 This code is pretty rough, but it might accidentally be helpful if you want to see examples of interacting with the YouTube API. Soon I'll be replacing this with a database version that's a bit more friendly to use.
